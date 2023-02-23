@@ -1,6 +1,14 @@
 import * as React from "react";
 import createSanityClient from "@sanity/client";
 import {PageComponent} from "../components/Page";
+import {Hero} from "../components/Hero";
+import {CTA} from "../components/CTA";
+import {GenericGrid} from "../components/GenericGrid";
+import {GenericCard} from "../components/GenericCard";
+import {OfferingCard} from "../components/OfferingCard";
+import {OfferingGrid} from "../components/OfferingGrid";
+import {ComponentProps} from "@uniformdev/canvas-react";
+import {Default} from "../components/Default";
 
 import type {
     GetServerDataProps,
@@ -17,7 +25,10 @@ import {
     CANVAS_SANITY_PARAMETER_TYPES,
     createSanityEnhancer,
 } from "@uniformdev/canvas-sanity";
-
+import {
+    Composition,
+    Slot,
+} from "@uniformdev/canvas-react";
 
 // function to get composition
 export const getComposition = async () => {
@@ -81,13 +92,38 @@ export async function enhanceComposition(composition: ComponentInstance) {
     });
 }
 
+// Resolve Render function
+export function componentResolutionRenderer(
+    component: ComponentInstance
+): React.ComponentType<ComponentProps<any>> {
+    switch (component.type) {
+        case "hero":
+            return Hero;
+        case "callToAction":
+            return CTA;
+        case "genericCard":
+            return GenericCard;
+        case "genericGrid":
+            return GenericGrid;
+        case "offeringCard":
+            return OfferingCard;
+        case "offeringGrid":
+            return OfferingGrid;
+        default:
+            return Default;
+    }
+}
+
 const Homepage = (props: PageProps) => {
     const {serverData} = props;
-    console.log('I am in homepage compo');
-
+    const {composition} = serverData as any;
+    console.log(serverData)
     return (
         <PageComponent>
-
+            <Composition
+                data={composition}
+                resolveRenderer={componentResolutionRenderer}
+            ></Composition>
         </PageComponent>
     );
 };

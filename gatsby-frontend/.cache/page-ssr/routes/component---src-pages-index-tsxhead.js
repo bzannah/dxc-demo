@@ -9973,6 +9973,287 @@ module.exports = __webpack_require__(/*! eventsource */ "./node_modules/eventsou
 
 /***/ }),
 
+/***/ "./node_modules/@uniformdev/context-react/node_modules/cookie/index.js":
+/*!*****************************************************************************!*\
+  !*** ./node_modules/@uniformdev/context-react/node_modules/cookie/index.js ***!
+  \*****************************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+/*!
+ * cookie
+ * Copyright(c) 2012-2014 Roman Shtylman
+ * Copyright(c) 2015 Douglas Christopher Wilson
+ * MIT Licensed
+ */
+
+
+
+/**
+ * Module exports.
+ * @public
+ */
+
+exports.parse = parse;
+exports.serialize = serialize;
+
+/**
+ * Module variables.
+ * @private
+ */
+
+var __toString = Object.prototype.toString
+
+/**
+ * RegExp to match field-content in RFC 7230 sec 3.2
+ *
+ * field-content = field-vchar [ 1*( SP / HTAB ) field-vchar ]
+ * field-vchar   = VCHAR / obs-text
+ * obs-text      = %x80-FF
+ */
+
+var fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
+
+/**
+ * Parse a cookie header.
+ *
+ * Parse the given cookie header string into an object
+ * The object has the various cookies as keys(names) => values
+ *
+ * @param {string} str
+ * @param {object} [options]
+ * @return {object}
+ * @public
+ */
+
+function parse(str, options) {
+  if (typeof str !== 'string') {
+    throw new TypeError('argument str must be a string');
+  }
+
+  var obj = {}
+  var opt = options || {};
+  var dec = opt.decode || decode;
+
+  var index = 0
+  while (index < str.length) {
+    var eqIdx = str.indexOf('=', index)
+
+    // no more cookie pairs
+    if (eqIdx === -1) {
+      break
+    }
+
+    var endIdx = str.indexOf(';', index)
+
+    if (endIdx === -1) {
+      endIdx = str.length
+    } else if (endIdx < eqIdx) {
+      // backtrack on prior semicolon
+      index = str.lastIndexOf(';', eqIdx - 1) + 1
+      continue
+    }
+
+    var key = str.slice(index, eqIdx).trim()
+
+    // only assign once
+    if (undefined === obj[key]) {
+      var val = str.slice(eqIdx + 1, endIdx).trim()
+
+      // quoted values
+      if (val.charCodeAt(0) === 0x22) {
+        val = val.slice(1, -1)
+      }
+
+      obj[key] = tryDecode(val, dec);
+    }
+
+    index = endIdx + 1
+  }
+
+  return obj;
+}
+
+/**
+ * Serialize data into a cookie header.
+ *
+ * Serialize the a name value pair into a cookie string suitable for
+ * http headers. An optional options object specified cookie parameters.
+ *
+ * serialize('foo', 'bar', { httpOnly: true })
+ *   => "foo=bar; httpOnly"
+ *
+ * @param {string} name
+ * @param {string} val
+ * @param {object} [options]
+ * @return {string}
+ * @public
+ */
+
+function serialize(name, val, options) {
+  var opt = options || {};
+  var enc = opt.encode || encode;
+
+  if (typeof enc !== 'function') {
+    throw new TypeError('option encode is invalid');
+  }
+
+  if (!fieldContentRegExp.test(name)) {
+    throw new TypeError('argument name is invalid');
+  }
+
+  var value = enc(val);
+
+  if (value && !fieldContentRegExp.test(value)) {
+    throw new TypeError('argument val is invalid');
+  }
+
+  var str = name + '=' + value;
+
+  if (null != opt.maxAge) {
+    var maxAge = opt.maxAge - 0;
+
+    if (isNaN(maxAge) || !isFinite(maxAge)) {
+      throw new TypeError('option maxAge is invalid')
+    }
+
+    str += '; Max-Age=' + Math.floor(maxAge);
+  }
+
+  if (opt.domain) {
+    if (!fieldContentRegExp.test(opt.domain)) {
+      throw new TypeError('option domain is invalid');
+    }
+
+    str += '; Domain=' + opt.domain;
+  }
+
+  if (opt.path) {
+    if (!fieldContentRegExp.test(opt.path)) {
+      throw new TypeError('option path is invalid');
+    }
+
+    str += '; Path=' + opt.path;
+  }
+
+  if (opt.expires) {
+    var expires = opt.expires
+
+    if (!isDate(expires) || isNaN(expires.valueOf())) {
+      throw new TypeError('option expires is invalid');
+    }
+
+    str += '; Expires=' + expires.toUTCString()
+  }
+
+  if (opt.httpOnly) {
+    str += '; HttpOnly';
+  }
+
+  if (opt.secure) {
+    str += '; Secure';
+  }
+
+  if (opt.priority) {
+    var priority = typeof opt.priority === 'string'
+      ? opt.priority.toLowerCase()
+      : opt.priority
+
+    switch (priority) {
+      case 'low':
+        str += '; Priority=Low'
+        break
+      case 'medium':
+        str += '; Priority=Medium'
+        break
+      case 'high':
+        str += '; Priority=High'
+        break
+      default:
+        throw new TypeError('option priority is invalid')
+    }
+  }
+
+  if (opt.sameSite) {
+    var sameSite = typeof opt.sameSite === 'string'
+      ? opt.sameSite.toLowerCase() : opt.sameSite;
+
+    switch (sameSite) {
+      case true:
+        str += '; SameSite=Strict';
+        break;
+      case 'lax':
+        str += '; SameSite=Lax';
+        break;
+      case 'strict':
+        str += '; SameSite=Strict';
+        break;
+      case 'none':
+        str += '; SameSite=None';
+        break;
+      default:
+        throw new TypeError('option sameSite is invalid');
+    }
+  }
+
+  return str;
+}
+
+/**
+ * URL-decode string value. Optimized to skip native call when no %.
+ *
+ * @param {string} str
+ * @returns {string}
+ */
+
+function decode (str) {
+  return str.indexOf('%') !== -1
+    ? decodeURIComponent(str)
+    : str
+}
+
+/**
+ * URL-encode value.
+ *
+ * @param {string} str
+ * @returns {string}
+ */
+
+function encode (val) {
+  return encodeURIComponent(val)
+}
+
+/**
+ * Determine if value is a Date.
+ *
+ * @param {*} val
+ * @private
+ */
+
+function isDate (val) {
+  return __toString.call(val) === '[object Date]' ||
+    val instanceof Date
+}
+
+/**
+ * Try decoding a string using a decoding function.
+ *
+ * @param {string} str
+ * @param {function} decode
+ * @private
+ */
+
+function tryDecode(str, decode) {
+  try {
+    return decode(str);
+  } catch (e) {
+    return str;
+  }
+}
+
+
+/***/ }),
+
 /***/ "./node_modules/core-util-is/lib/util.js":
 /*!***********************************************!*\
   !*** ./node_modules/core-util-is/lib/util.js ***!
@@ -12026,6 +12307,55 @@ function defaults(opts) {
 
 /***/ }),
 
+/***/ "./src/components/CTA.tsx":
+/*!********************************!*\
+  !*** ./src/components/CTA.tsx ***!
+  \********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "CTA": () => (/* binding */ CTA)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// src/components/CTA.tsx
+
+const CTA = ({
+  title,
+  link
+}) => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("a", {
+    href: link
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("button", {
+    className: "px-4 py-2 bg-[#c98686] rounded"
+  }, title)));
+};
+
+/***/ }),
+
+/***/ "./src/components/Default.tsx":
+/*!************************************!*\
+  !*** ./src/components/Default.tsx ***!
+  \************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Default": () => (/* binding */ Default)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// src/components/default.tsx
+
+const Default = () => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("h1", null, "Default component"));
+};
+
+/***/ }),
+
 /***/ "./src/components/Footer.tsx":
 /*!***********************************!*\
   !*** ./src/components/Footer.tsx ***!
@@ -12045,6 +12375,76 @@ const Footer = () => {
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
     className: "px-5 py-2 flex text-[#fff4ec] bg-[#2d2d34] font-light text-sm mt-10"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", null, " Joyride \xA9 2023"));
+};
+
+/***/ }),
+
+/***/ "./src/components/GenericCard.tsx":
+/*!****************************************!*\
+  !*** ./src/components/GenericCard.tsx ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "GenericCard": () => (/* binding */ GenericCard)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// src/components/GenericCard.tsx
+
+const GenericCard = ({
+  title,
+  ctaLink = "#",
+  ctaTitle,
+  body
+}) => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "h-full flex flex-col justify-between"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("h3", {
+    className: "text-xl font-medium text-center mb-5"
+  }, title), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", {
+    className: "px-10"
+  }, body.body), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("a", {
+    href: ctaLink
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", {
+    className: "text-center mt-5 text-[#c98686] font-semibold"
+  }, ctaTitle)));
+};
+
+/***/ }),
+
+/***/ "./src/components/GenericGrid.tsx":
+/*!****************************************!*\
+  !*** ./src/components/GenericGrid.tsx ***!
+  \****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "GenericGrid": () => (/* binding */ GenericGrid)
+/* harmony export */ });
+/* harmony import */ var _uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @uniformdev/canvas-react */ "./node_modules/@uniformdev/canvas-react/dist/index.mjs");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// src/components/GenericGrid.tsx
+
+
+const GenericGrid = ({
+  title,
+  children
+}) => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "border-t-2 py-[4em]"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("h3", {
+    className: "text-3xl text-center mb-10 font-medium"
+  }, title), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "grid grid-cols-3 gap-5"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_1__.Slot, {
+    name: "items"
+  })));
 };
 
 /***/ }),
@@ -12081,6 +12481,47 @@ const Header = () => {
 
 /***/ }),
 
+/***/ "./src/components/Hero.tsx":
+/*!*********************************!*\
+  !*** ./src/components/Hero.tsx ***!
+  \*********************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Hero": () => (/* binding */ Hero)
+/* harmony export */ });
+/* harmony import */ var _uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @uniformdev/canvas-react */ "./node_modules/@uniformdev/canvas-react/dist/index.mjs");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// src/components/Hero.tsx
+
+
+const Hero = ({
+  title,
+  description,
+  image,
+  children
+}) => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "grid grid-cols-2 py-[3em]"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "mb-5"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("h1", {
+    className: "text-4xl mb-5"
+  }, title), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", {
+    className: "mb-5"
+  }, description), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_1__.Slot, {
+    name: "ctas"
+  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("img", {
+    src: image,
+    width: "500px"
+  })));
+};
+
+/***/ }),
+
 /***/ "./src/components/Layout.tsx":
 /*!***********************************!*\
   !*** ./src/components/Layout.tsx ***!
@@ -12107,6 +12548,81 @@ const Layout = props => {
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Header__WEBPACK_IMPORTED_MODULE_2__.Header, null), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
     className: "mb-auto"
   }, props.children), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_Footer__WEBPACK_IMPORTED_MODULE_1__.Footer, null));
+};
+
+/***/ }),
+
+/***/ "./src/components/OfferingCard.tsx":
+/*!*****************************************!*\
+  !*** ./src/components/OfferingCard.tsx ***!
+  \*****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "OfferingCard": () => (/* binding */ OfferingCard)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// src/components/OfferingCard.tsx
+
+
+const OfferingCard = ({
+  offering: {
+    offeringName,
+    offeringImage,
+    offeringSummary
+  }
+}) => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "text-center rounded-md border-2 p-3 h-full flex flex-col justify-between"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", {
+    className: "text-lg font-semibold"
+  }, offeringName), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "min-h-150"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("img", {
+    src: offeringImage,
+    width: "100px",
+    className: "mx-auto",
+    height: 300
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", {
+    className: "text-sm"
+  }, offeringSummary));
+};
+
+/***/ }),
+
+/***/ "./src/components/OfferingGrid.tsx":
+/*!*****************************************!*\
+  !*** ./src/components/OfferingGrid.tsx ***!
+  \*****************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "OfferingGrid": () => (/* binding */ OfferingGrid)
+/* harmony export */ });
+/* harmony import */ var _uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @uniformdev/canvas-react */ "./node_modules/@uniformdev/canvas-react/dist/index.mjs");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+// src/components/OfferingGrid.tsx
+
+
+
+const OfferingGrid = ({
+  title
+}) => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "border-t-2 py-[4em]"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("h3", {
+    className: "text-3xl text-center mb-10 font-medium"
+  }, title), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", {
+    className: "grid grid-cols-4 gap-7"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_1__.Slot, {
+    name: "offerings"
+  })));
 };
 
 /***/ }),
@@ -12146,6 +12662,7 @@ const PageComponent = props => {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "componentResolutionRenderer": () => (/* binding */ componentResolutionRenderer),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
 /* harmony export */   "enhanceComposition": () => (/* binding */ enhanceComposition),
 /* harmony export */   "getComposition": () => (/* binding */ getComposition),
@@ -12153,10 +12670,26 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _sanity_client__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @sanity/client */ "./node_modules/@sanity/client/dist/index.cjs.js");
+/* harmony import */ var _sanity_client__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! @sanity/client */ "./node_modules/@sanity/client/dist/index.cjs.js");
 /* harmony import */ var _components_Page__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../components/Page */ "./src/components/Page.tsx");
-/* harmony import */ var _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @uniformdev/canvas */ "./node_modules/@uniformdev/canvas/dist/chunk-QNNQJB7F.mjs");
-/* harmony import */ var _uniformdev_canvas_sanity__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @uniformdev/canvas-sanity */ "./node_modules/@uniformdev/canvas-sanity/dist/index.mjs");
+/* harmony import */ var _components_Hero__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../components/Hero */ "./src/components/Hero.tsx");
+/* harmony import */ var _components_CTA__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../components/CTA */ "./src/components/CTA.tsx");
+/* harmony import */ var _components_GenericGrid__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../components/GenericGrid */ "./src/components/GenericGrid.tsx");
+/* harmony import */ var _components_GenericCard__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../components/GenericCard */ "./src/components/GenericCard.tsx");
+/* harmony import */ var _components_OfferingCard__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../components/OfferingCard */ "./src/components/OfferingCard.tsx");
+/* harmony import */ var _components_OfferingGrid__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../components/OfferingGrid */ "./src/components/OfferingGrid.tsx");
+/* harmony import */ var _components_Default__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../components/Default */ "./src/components/Default.tsx");
+/* harmony import */ var _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! @uniformdev/canvas */ "./node_modules/@uniformdev/canvas/dist/chunk-QNNQJB7F.mjs");
+/* harmony import */ var _uniformdev_canvas_sanity__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! @uniformdev/canvas-sanity */ "./node_modules/@uniformdev/canvas-sanity/dist/index.mjs");
+/* harmony import */ var _uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! @uniformdev/canvas-react */ "./node_modules/@uniformdev/canvas-react/dist/index.mjs");
+
+
+
+
+
+
+
+
 
 
 
@@ -12167,7 +12700,7 @@ __webpack_require__.r(__webpack_exports__);
 const getComposition = async () => {
   const proId = "4d683e30-c332-4084-9024-fea2fd04c0d4";
   const apiK = "uf1j5j9wleq08ysfsdgz4h3z3u3ajykv7pf5n309jdr4z7qf9pfwytd3x839q8xytzu68g2p639ux8un7s2rzv3mapd6kcexq";
-  const client = new _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_2__.CanvasClient({
+  const client = new _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_9__.CanvasClient({
     apiKey: apiK,
     projectId: proId
   });
@@ -12203,13 +12736,13 @@ async function getServerData({
 async function enhanceComposition(composition) {
   const sanity_pro_id = "of2hm1rq";
   const sanity_data_Set = "production";
-  const sanityClient = (0,_sanity_client__WEBPACK_IMPORTED_MODULE_3__["default"])({
+  const sanityClient = (0,_sanity_client__WEBPACK_IMPORTED_MODULE_10__["default"])({
     projectId: sanity_pro_id,
     dataset: sanity_data_Set,
     useCdn: false
   });
   // Create a modified enhancer to enhance the images and return offeringImage
-  const sanityEnhancer = (0,_uniformdev_canvas_sanity__WEBPACK_IMPORTED_MODULE_4__.createSanityEnhancer)({
+  const sanityEnhancer = (0,_uniformdev_canvas_sanity__WEBPACK_IMPORTED_MODULE_11__.createSanityEnhancer)({
     client: sanityClient,
     modifyQuery: options => {
       options.query = `*[_id == $id][0] { 
@@ -12219,18 +12752,44 @@ async function enhanceComposition(composition) {
       return options;
     }
   });
-  await (0,_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_2__.enhance)({
+  await (0,_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_9__.enhance)({
     composition,
-    enhancers: new _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_2__.EnhancerBuilder().parameterType(_uniformdev_canvas_sanity__WEBPACK_IMPORTED_MODULE_4__.CANVAS_SANITY_PARAMETER_TYPES, sanityEnhancer),
+    enhancers: new _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_9__.EnhancerBuilder().parameterType(_uniformdev_canvas_sanity__WEBPACK_IMPORTED_MODULE_11__.CANVAS_SANITY_PARAMETER_TYPES, sanityEnhancer),
     context: {}
   });
+}
+
+// Resolve Render function
+function componentResolutionRenderer(component) {
+  switch (component.type) {
+    case "hero":
+      return _components_Hero__WEBPACK_IMPORTED_MODULE_2__.Hero;
+    case "callToAction":
+      return _components_CTA__WEBPACK_IMPORTED_MODULE_3__.CTA;
+    case "genericCard":
+      return _components_GenericCard__WEBPACK_IMPORTED_MODULE_5__.GenericCard;
+    case "genericGrid":
+      return _components_GenericGrid__WEBPACK_IMPORTED_MODULE_4__.GenericGrid;
+    case "offeringCard":
+      return _components_OfferingCard__WEBPACK_IMPORTED_MODULE_6__.OfferingCard;
+    case "offeringGrid":
+      return _components_OfferingGrid__WEBPACK_IMPORTED_MODULE_7__.OfferingGrid;
+    default:
+      return _components_Default__WEBPACK_IMPORTED_MODULE_8__.Default;
+  }
 }
 const Homepage = props => {
   const {
     serverData
   } = props;
-  console.log('I am in homepage compo');
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_components_Page__WEBPACK_IMPORTED_MODULE_1__.PageComponent, null);
+  const {
+    composition
+  } = serverData;
+  console.log(serverData);
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_components_Page__WEBPACK_IMPORTED_MODULE_1__.PageComponent, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_12__.Composition, {
+    data: composition,
+    resolveRenderer: componentResolutionRenderer
+  }));
 };
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Homepage);
 
@@ -18385,6 +18944,208 @@ if (({}).READABLE_STREAM === 'disable' && Stream) {
   exports.Duplex = __webpack_require__(/*! ./lib/_stream_duplex.js */ "./node_modules/readable-stream/lib/_stream_duplex.js");
   exports.Transform = __webpack_require__(/*! ./lib/_stream_transform.js */ "./node_modules/readable-stream/lib/_stream_transform.js");
   exports.PassThrough = __webpack_require__(/*! ./lib/_stream_passthrough.js */ "./node_modules/readable-stream/lib/_stream_passthrough.js");
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/rfdc/index.js":
+/*!************************************!*\
+  !*** ./node_modules/rfdc/index.js ***!
+  \************************************/
+/***/ ((module) => {
+
+"use strict";
+
+module.exports = rfdc
+
+function copyBuffer (cur) {
+  if (cur instanceof Buffer) {
+    return Buffer.from(cur)
+  }
+
+  return new cur.constructor(cur.buffer.slice(), cur.byteOffset, cur.length)
+}
+
+function rfdc (opts) {
+  opts = opts || {}
+
+  if (opts.circles) return rfdcCircles(opts)
+  return opts.proto ? cloneProto : clone
+
+  function cloneArray (a, fn) {
+    var keys = Object.keys(a)
+    var a2 = new Array(keys.length)
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i]
+      var cur = a[k]
+      if (typeof cur !== 'object' || cur === null) {
+        a2[k] = cur
+      } else if (cur instanceof Date) {
+        a2[k] = new Date(cur)
+      } else if (ArrayBuffer.isView(cur)) {
+        a2[k] = copyBuffer(cur)
+      } else {
+        a2[k] = fn(cur)
+      }
+    }
+    return a2
+  }
+
+  function clone (o) {
+    if (typeof o !== 'object' || o === null) return o
+    if (o instanceof Date) return new Date(o)
+    if (Array.isArray(o)) return cloneArray(o, clone)
+    if (o instanceof Map) return new Map(cloneArray(Array.from(o), clone))
+    if (o instanceof Set) return new Set(cloneArray(Array.from(o), clone))
+    var o2 = {}
+    for (var k in o) {
+      if (Object.hasOwnProperty.call(o, k) === false) continue
+      var cur = o[k]
+      if (typeof cur !== 'object' || cur === null) {
+        o2[k] = cur
+      } else if (cur instanceof Date) {
+        o2[k] = new Date(cur)
+      } else if (cur instanceof Map) {
+        o2[k] = new Map(cloneArray(Array.from(cur), clone))
+      } else if (cur instanceof Set) {
+        o2[k] = new Set(cloneArray(Array.from(cur), clone))
+      } else if (ArrayBuffer.isView(cur)) {
+        o2[k] = copyBuffer(cur)
+      } else {
+        o2[k] = clone(cur)
+      }
+    }
+    return o2
+  }
+
+  function cloneProto (o) {
+    if (typeof o !== 'object' || o === null) return o
+    if (o instanceof Date) return new Date(o)
+    if (Array.isArray(o)) return cloneArray(o, cloneProto)
+    if (o instanceof Map) return new Map(cloneArray(Array.from(o), cloneProto))
+    if (o instanceof Set) return new Set(cloneArray(Array.from(o), cloneProto))
+    var o2 = {}
+    for (var k in o) {
+      var cur = o[k]
+      if (typeof cur !== 'object' || cur === null) {
+        o2[k] = cur
+      } else if (cur instanceof Date) {
+        o2[k] = new Date(cur)
+      } else if (cur instanceof Map) {
+        o2[k] = new Map(cloneArray(Array.from(cur), cloneProto))
+      } else if (cur instanceof Set) {
+        o2[k] = new Set(cloneArray(Array.from(cur), cloneProto))
+      } else if (ArrayBuffer.isView(cur)) {
+        o2[k] = copyBuffer(cur)
+      } else {
+        o2[k] = cloneProto(cur)
+      }
+    }
+    return o2
+  }
+}
+
+function rfdcCircles (opts) {
+  var refs = []
+  var refsNew = []
+
+  return opts.proto ? cloneProto : clone
+
+  function cloneArray (a, fn) {
+    var keys = Object.keys(a)
+    var a2 = new Array(keys.length)
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i]
+      var cur = a[k]
+      if (typeof cur !== 'object' || cur === null) {
+        a2[k] = cur
+      } else if (cur instanceof Date) {
+        a2[k] = new Date(cur)
+      } else if (ArrayBuffer.isView(cur)) {
+        a2[k] = copyBuffer(cur)
+      } else {
+        var index = refs.indexOf(cur)
+        if (index !== -1) {
+          a2[k] = refsNew[index]
+        } else {
+          a2[k] = fn(cur)
+        }
+      }
+    }
+    return a2
+  }
+
+  function clone (o) {
+    if (typeof o !== 'object' || o === null) return o
+    if (o instanceof Date) return new Date(o)
+    if (Array.isArray(o)) return cloneArray(o, clone)
+    if (o instanceof Map) return new Map(cloneArray(Array.from(o), clone))
+    if (o instanceof Set) return new Set(cloneArray(Array.from(o), clone))
+    var o2 = {}
+    refs.push(o)
+    refsNew.push(o2)
+    for (var k in o) {
+      if (Object.hasOwnProperty.call(o, k) === false) continue
+      var cur = o[k]
+      if (typeof cur !== 'object' || cur === null) {
+        o2[k] = cur
+      } else if (cur instanceof Date) {
+        o2[k] = new Date(cur)
+      } else if (cur instanceof Map) {
+        o2[k] = new Map(cloneArray(Array.from(cur), clone))
+      } else if (cur instanceof Set) {
+        o2[k] = new Set(cloneArray(Array.from(cur), clone))
+      } else if (ArrayBuffer.isView(cur)) {
+        o2[k] = copyBuffer(cur)
+      } else {
+        var i = refs.indexOf(cur)
+        if (i !== -1) {
+          o2[k] = refsNew[i]
+        } else {
+          o2[k] = clone(cur)
+        }
+      }
+    }
+    refs.pop()
+    refsNew.pop()
+    return o2
+  }
+
+  function cloneProto (o) {
+    if (typeof o !== 'object' || o === null) return o
+    if (o instanceof Date) return new Date(o)
+    if (Array.isArray(o)) return cloneArray(o, cloneProto)
+    if (o instanceof Map) return new Map(cloneArray(Array.from(o), cloneProto))
+    if (o instanceof Set) return new Set(cloneArray(Array.from(o), cloneProto))
+    var o2 = {}
+    refs.push(o)
+    refsNew.push(o2)
+    for (var k in o) {
+      var cur = o[k]
+      if (typeof cur !== 'object' || cur === null) {
+        o2[k] = cur
+      } else if (cur instanceof Date) {
+        o2[k] = new Date(cur)
+      } else if (cur instanceof Map) {
+        o2[k] = new Map(cloneArray(Array.from(cur), cloneProto))
+      } else if (cur instanceof Set) {
+        o2[k] = new Set(cloneArray(Array.from(cur), cloneProto))
+      } else if (ArrayBuffer.isView(cur)) {
+        o2[k] = copyBuffer(cur)
+      } else {
+        var i = refs.indexOf(cur)
+        if (i !== -1) {
+          o2[k] = refsNew[i]
+        } else {
+          o2[k] = cloneProto(cur)
+        }
+      }
+    }
+    refs.pop()
+    refsNew.pop()
+    return o2
+  }
 }
 
 
@@ -24626,6 +25387,480 @@ const requester = _index_cjs__WEBPACK_IMPORTED_MODULE_0__.requester;
 
 /***/ }),
 
+/***/ "./node_modules/@uniformdev/canvas-react/dist/index.mjs":
+/*!**************************************************************!*\
+  !*** ./node_modules/@uniformdev/canvas-react/dist/index.mjs ***!
+  \**************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Composition": () => (/* binding */ Composition),
+/* harmony export */   "DefaultNotImplementedComponent": () => (/* binding */ DefaultNotImplementedComponent),
+/* harmony export */   "NOT_IMPLEMENTED_COMPONENT": () => (/* binding */ NOT_IMPLEMENTED_COMPONENT),
+/* harmony export */   "Slot": () => (/* binding */ Slot),
+/* harmony export */   "UniformComponent": () => (/* binding */ UniformComponent),
+/* harmony export */   "UniformComposition": () => (/* binding */ UniformComposition),
+/* harmony export */   "UniformSlot": () => (/* binding */ UniformSlot),
+/* harmony export */   "componentStore": () => (/* binding */ componentStore),
+/* harmony export */   "componentStoreResolver": () => (/* binding */ componentStoreResolver),
+/* harmony export */   "createApiEnhancer": () => (/* binding */ createApiEnhancer),
+/* harmony export */   "createComponentStore": () => (/* binding */ createComponentStore),
+/* harmony export */   "createComponentStoreResolver": () => (/* binding */ createComponentStoreResolver),
+/* harmony export */   "createUniformApiEnhancer": () => (/* reexport safe */ _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.createUniformApiEnhancer),
+/* harmony export */   "registerUniformComponent": () => (/* binding */ registerUniformComponent),
+/* harmony export */   "useComposition": () => (/* binding */ useComposition),
+/* harmony export */   "useCompositionEventEffect": () => (/* binding */ useCompositionEventEffect),
+/* harmony export */   "useContextualEditing": () => (/* binding */ useContextualEditing),
+/* harmony export */   "useUniformContextualEditing": () => (/* binding */ useUniformContextualEditing),
+/* harmony export */   "useUniformCurrentComponent": () => (/* binding */ useUniformCurrentComponent),
+/* harmony export */   "useUniformCurrentComposition": () => (/* binding */ useUniformCurrentComposition)
+/* harmony export */ });
+/* harmony import */ var _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @uniformdev/canvas */ "./node_modules/@uniformdev/canvas/dist/chunk-QNNQJB7F.mjs");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var _uniformdev_context_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @uniformdev/context-react */ "./node_modules/@uniformdev/context-react/dist/index.mjs");
+// src/components/DefaultNotImplementedComponent.tsx
+
+
+var wrapperStyles = {
+  borderLeft: "4px solid #e42535",
+  padding: "16px",
+  fontSize: "16px",
+  borderRadius: "0 8px 8px 0",
+  margin: "8px",
+  backgroundColor: "rgba(255, 255, 255, 0.45)",
+  color: "#1d3557"
+};
+function DefaultNotImplementedComponent(props) {
+  var _a;
+  const componentType = (_a = props.component) == null ? void 0 : _a.type;
+  if (!componentType) {
+    return null;
+  }
+  if (componentType === _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.CANVAS_LOCALIZATION_TYPE) {
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { style: wrapperStyles }, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", null, "Seems like localization is not enabled in your application. Please read our documentation on how to", " ", /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+      "a",
+      {
+        href: "https://docs.uniform.app/guides/composition/localization#activate-front-end",
+        target: "_blank",
+        style: { fontWeight: "bolder", textDecoration: "underline" },
+        rel: "noreferrer"
+      },
+      "enable localization in your front-end application."
+    )));
+  }
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("div", { style: wrapperStyles }, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("h2", null, "Component: ", /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("code", null, componentType)), /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("p", null, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("code", null, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("strong", null, componentType)), " ", "has no React implementation. It may need to be added to your ", /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("code", null, "resolveRenderer()"), " function."), /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("details", null, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("summary", { style: { cursor: "pointer" } }, "Props"), /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("pre", null, JSON.stringify(props, null, 2))));
+}
+
+// src/components/UniformComponent.tsx
+
+
+
+
+// src/convertComponentToProps.ts
+function convertComponentToProps(component) {
+  var _a;
+  const parameters = (_a = component.parameters) != null ? _a : {};
+  const renderComponentProps = {
+    ...Object.keys(parameters).reduce((acc, cur) => {
+      acc[cur] = parameters[cur].value;
+      return acc;
+    }, {}),
+    ...component.data,
+    component
+  };
+  return renderComponentProps;
+}
+
+// src/storeDefinition.ts
+var NOT_IMPLEMENTED_COMPONENT = "__not_implemented__";
+var getTypeWithVariant = (type, variantId) => `${type}${variantId ? `__${variantId}` : ""}`;
+var createComponentStore = () => {
+  const components = /* @__PURE__ */ new Map();
+  components.set(NOT_IMPLEMENTED_COMPONENT, DefaultNotImplementedComponent);
+  return {
+    register: ({ type, component, variantId }) => {
+      components.set(getTypeWithVariant(type, variantId), component);
+    },
+    get: (type, variantId) => {
+      return components.get(getTypeWithVariant(type, variantId));
+    }
+  };
+};
+var createComponentStoreResolver = ({ store, defaultComponent = DefaultNotImplementedComponent }) => {
+  return (component) => {
+    const resolved = store.get(getTypeWithVariant(component.type, component.variant));
+    return resolved || defaultComponent;
+  };
+};
+
+// src/store.ts
+var componentStore = createComponentStore();
+var registerUniformComponent = ({
+  type,
+  variantId,
+  component
+}) => {
+  componentStore.register({
+    type,
+    variantId,
+    component
+  });
+};
+var componentStoreResolver = createComponentStoreResolver({
+  store: componentStore
+});
+
+// src/components/UniformSlot.tsx
+
+
+
+// src/defaultSystemComponentResolver.tsx
+
+
+
+var defaultSystemComponentResolver = {
+  test: (component, key, renderChild) => {
+    var _a, _b, _c, _d, _e;
+    const testComponent = component;
+    const variants = (_b = (_a = testComponent.slots) == null ? void 0 : _a.test) != null ? _b : [];
+    const testName = (_e = (_d = (_c = testComponent.parameters) == null ? void 0 : _c.test) == null ? void 0 : _d.value) != null ? _e : "Untitled Test";
+    const finalVariants = (0,_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.mapSlotToTestVariations)(variants);
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+      _uniformdev_context_react__WEBPACK_IMPORTED_MODULE_2__.Test,
+      {
+        key,
+        variations: finalVariants,
+        name: testName,
+        component: (variation) => renderChild(variation, key)
+      }
+    );
+  },
+  personalization: (component, key, renderChild) => {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const pzComponent = component;
+    const processedVariants = (0,_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.mapSlotToPersonalizedVariations)((_a = pzComponent == null ? void 0 : pzComponent.slots) == null ? void 0 : _a.pz);
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+      _uniformdev_context_react__WEBPACK_IMPORTED_MODULE_2__.Personalize,
+      {
+        key,
+        variations: processedVariants,
+        count: Number((_d = (_c = (_b = pzComponent.parameters) == null ? void 0 : _b.count) == null ? void 0 : _c.value) != null ? _d : 1),
+        name: (_g = (_f = (_e = pzComponent.parameters) == null ? void 0 : _e.trackingEventName) == null ? void 0 : _f.value) != null ? _g : "Untitled Personalization",
+        component: (variation) => renderChild(variation, 0)
+      }
+    );
+  }
+};
+
+// src/components/UniformSlot.tsx
+function UniformSlot({
+  name,
+  resolveRenderer,
+  children,
+  emptyPlaceholder
+}) {
+  var _a;
+  const { data: parentData, resolveRenderer: parentResolveRenderer } = useUniformCurrentComponent();
+  if (!parentData) {
+    throw new Error("Cannot use Slot without a <UniformComponent /> wrapper.");
+  }
+  const slot = (_a = parentData.slots) == null ? void 0 : _a[name];
+  if (!slot || !Array.isArray(slot)) {
+    if (true) {
+      console.warn(
+        `[canvas-dev] slot '${name}' was rendered, but it was not defined on its component. This is expected if the slot is optional, otherwise it may indicate a typo. Component:`,
+        parentData
+      );
+    }
+    return null;
+  }
+  const resolver = resolveRenderer != null ? resolveRenderer : parentResolveRenderer;
+  const systemResolver = defaultSystemComponentResolver;
+  const finalChildren = slot.map((component, index) => {
+    const child = renderComponent({
+      component,
+      resolveRenderer: resolver,
+      resolveSystem: systemResolver,
+      key: `inner-${index}`,
+      indexInSlot: index,
+      slotName: name,
+      parentComponent: parentData,
+      slotChildrenCount: slot.length,
+      emptyPlaceholder
+    });
+    const elements = children ? children({ child, component, key: `wrapped-inner-${index}` }) : child;
+    return react__WEBPACK_IMPORTED_MODULE_0__.createElement(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, { key: index }, elements);
+  });
+  return react__WEBPACK_IMPORTED_MODULE_0__.createElement(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, void 0, finalChildren);
+}
+function renderComponent({
+  component,
+  resolveRenderer,
+  resolveSystem,
+  key = 0,
+  indexInSlot,
+  slotName,
+  parentComponent,
+  slotChildrenCount,
+  emptyPlaceholder
+}) {
+  var _a, _b, _c, _d;
+  const RenderComponent = resolveRenderer == null ? void 0 : resolveRenderer(component);
+  if (component.type === _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.CANVAS_TEST_TYPE) {
+    return resolveSystem.test(
+      component,
+      key,
+      (component2, key2) => renderComponent({ component: component2, resolveRenderer, resolveSystem, key: key2 })
+    );
+  } else if (component.type === _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.CANVAS_PERSONALIZE_TYPE) {
+    return resolveSystem.personalization(
+      component,
+      key,
+      (component2, key2) => renderComponent({ component: component2, resolveRenderer, resolveSystem, key: key2 })
+    );
+  } else if (RenderComponent) {
+    const props = convertComponentToProps(component);
+    const shouldRenderContextualEditingTags = Boolean(component._id);
+    const isPlaceholder = component._id === _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.PLACEHOLDER_ID;
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(UniformComponent, { key, data: component, resolveRenderer }, !shouldRenderContextualEditingTags ? null : /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+      "script",
+      {
+        key,
+        "data-role": _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.IN_CONTEXT_EDITOR_COMPONENT_START_ROLE,
+        "data-parent-id": parentComponent == null ? void 0 : parentComponent._id,
+        "data-parent-type": parentComponent == null ? void 0 : parentComponent.type,
+        "data-component-id": component._id,
+        "data-slot-name": slotName != null ? slotName : "",
+        "data-component-index": indexInSlot != null ? indexInSlot : "",
+        "data-total-components": slotChildrenCount != null ? slotChildrenCount : "",
+        "data-component-name": component.type,
+        "data-is-placeholder": isPlaceholder ? "true" : void 0,
+        "data-is-localized": ((_a = component.parameters) == null ? void 0 : _a[_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.CANVAS_LOCALE_TAG_PARAM]) ? "true" : void 0,
+        "data-component-title": (_d = (_c = (_b = component.parameters) == null ? void 0 : _b.title) == null ? void 0 : _c.value) != null ? _d : ""
+      }
+    ), isPlaceholder && emptyPlaceholder !== void 0 ? emptyPlaceholder : /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(RenderComponent, { ...props }), !shouldRenderContextualEditingTags ? null : /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement("script", { "data-role": "component-end" }));
+  } else if (true) {
+    console.warn(
+      `[canvas] found component of type '${component.type}' which the resolveRenderer prop returned no component for. Nothing will be rendered. The resolveRenderer function may need to be extended to handle the new type.`,
+      component
+    );
+  }
+  return null;
+}
+var Slot = UniformSlot;
+
+// src/components/UniformComponent.tsx
+var UniformComponentContext = (0,react__WEBPACK_IMPORTED_MODULE_0__.createContext)({});
+function useUniformCurrentComponent() {
+  return (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(UniformComponentContext);
+}
+var componentStoreResolver2 = (component) => {
+  const resolved = componentStore.get(component.type, component.variant);
+  return resolved || null;
+};
+function UniformComponent({
+  data,
+  resolveRenderer,
+  children,
+  behaviorTracking
+}) {
+  var _a, _b, _c;
+  const parentData = useUniformCurrentComponent();
+  const contextContextProviderPresent = (0,_uniformdev_context_react__WEBPACK_IMPORTED_MODULE_2__.useUniformContext)({ throwOnMissingProvider: false }) !== void 0;
+  if (!data) {
+    if (true) {
+      console.warn(`[canvas-dev] UniformComponent was rendered with no data, nothing will be output.`);
+    }
+    return null;
+  }
+  const contextValue = {
+    data,
+    resolveRenderer: resolveRenderer || (parentData == null ? void 0 : parentData.resolveRenderer) || componentStoreResolver2,
+    behaviorTracking: (_a = behaviorTracking != null ? behaviorTracking : parentData == null ? void 0 : parentData.behaviorTracking) != null ? _a : "onView"
+  };
+  const enrichmentTags = (_c = (_b = data.parameters) == null ? void 0 : _b[_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.CANVAS_ENRICHMENT_TAG_PARAM]) == null ? void 0 : _c.value;
+  const TrackComponent = contextValue.behaviorTracking === "onLoad" ? _uniformdev_context_react__WEBPACK_IMPORTED_MODULE_2__.TrackFragment : _uniformdev_context_react__WEBPACK_IMPORTED_MODULE_2__.Track;
+  const resolvedChildren = resolveChildren({
+    children,
+    data,
+    hasParentLayout: Boolean(parentData.data)
+  });
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(UniformComponentContext.Provider, { value: contextValue }, contextContextProviderPresent ? /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(TrackComponent, { behavior: enrichmentTags }, resolvedChildren) : resolvedChildren);
+}
+function resolveChildren({
+  children,
+  data,
+  hasParentLayout
+}) {
+  var _a;
+  if (!children && !hasParentLayout) {
+    const rootComponent = componentStore.get(data.type);
+    if (rootComponent) {
+      children = react__WEBPACK_IMPORTED_MODULE_0__.createElement(rootComponent, convertComponentToProps(data));
+    } else {
+      if (Object.keys((_a = data.slots) != null ? _a : {}).length > 1 && "development" === "development") {
+        console.warn(
+          `[canvas-dev] All the slots in component '${data.type}' are rendered in no particular order. Use '<Slot name={slotName} />' to reliably render the slots.`
+        );
+      }
+      children = Object.keys(data.slots || {}).map((slotName) => /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(UniformSlot, { key: slotName, name: slotName }));
+    }
+  }
+  const renderChildren = typeof children === "function" ? children(convertComponentToProps(data)) : children;
+  return renderChildren;
+}
+
+// src/components/UniformComposition.tsx
+
+
+// src/hooks/useUniformContextualEditing.ts
+
+
+var createApiEnhancer = _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.createUniformApiEnhancer;
+var registeredCompositionIds = /* @__PURE__ */ new Set();
+var useUniformContextualEditing = ({
+  initialCompositionValue,
+  enhance = (message) => message.composition
+}) => {
+  const [contextualComposition, setContextualComposition] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
+  const channel = (0,react__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => {
+    var _a;
+    if (!isInContextEditingMode()) {
+      return;
+    }
+    const channel2 = (0,_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.createCanvasChannel)({
+      broadcastTo: [(_a = window.opener) != null ? _a : window.top],
+      listenTo: [window]
+    });
+    return channel2;
+  }, []);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (!channel || registeredCompositionIds.has(initialCompositionValue == null ? void 0 : initialCompositionValue._id)) {
+      return;
+    }
+    const unsubscribe = channel.on("update-composition", async (message) => {
+      if (!(0,_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.isUpdateCompositionMessage)(message)) {
+        return;
+      }
+      const enhancedComposition = await enhance(message);
+      setContextualComposition(enhancedComposition);
+    });
+    registeredCompositionIds.add(initialCompositionValue == null ? void 0 : initialCompositionValue._id);
+    return () => {
+      unsubscribe();
+      registeredCompositionIds.delete(initialCompositionValue == null ? void 0 : initialCompositionValue._id);
+    };
+  }, [channel, enhance, initialCompositionValue == null ? void 0 : initialCompositionValue._id]);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (!isInContextEditingMode()) {
+      return;
+    }
+    const existingScript = document.getElementById(_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.IN_CONTEXT_EDITOR_EMBED_SCRIPT_ID);
+    if (existingScript) {
+      return;
+    }
+    window.__UNIFORM_CONTEXTUAL_EDITING__ = {
+      framework: "React"
+    };
+    const script = document.createElement("script");
+    script.id = _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.IN_CONTEXT_EDITOR_EMBED_SCRIPT_ID;
+    script.src = getCanvasInContextEmbedScriptUrl();
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
+  return {
+    composition: contextualComposition != null ? contextualComposition : initialCompositionValue
+  };
+};
+function getCanvasInContextEmbedScriptUrl() {
+  const scriptUrl = `${window.document.referrer}files/canvas-in-context-embed/index.js`;
+  return scriptUrl;
+}
+function isInContextEditingMode() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const isOpenedByInContextEditor = new URLSearchParams(window.location.search).has(
+    _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.IN_CONTEXT_EDITOR_QUERY_STRING_PARAM
+  );
+  const isAllowlistedReferrer = Boolean(
+    window.document.referrer.match(/(^https:\/\/|\.)(uniform.app|uniform.wtf|localhost:\d{4})\//)
+  );
+  return isOpenedByInContextEditor && isAllowlistedReferrer;
+}
+var useContextualEditing = useUniformContextualEditing;
+
+// src/components/UniformComposition.tsx
+var UniformCompositionContext = (0,react__WEBPACK_IMPORTED_MODULE_0__.createContext)({ data: void 0 });
+function useUniformCurrentComposition() {
+  return (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(UniformCompositionContext);
+}
+function UniformComposition({
+  data,
+  behaviorTracking = "onView",
+  children,
+  resolveRenderer,
+  contextualEditingEnhancer
+}) {
+  const { composition } = useUniformContextualEditing({
+    initialCompositionValue: data,
+    enhance: contextualEditingEnhancer
+  });
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(UniformCompositionContext.Provider, { value: { data: composition, behaviorTracking, resolveRenderer } }, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+    UniformComponent,
+    {
+      data: composition,
+      behaviorTracking,
+      resolveRenderer
+    },
+    children
+  ));
+}
+var useComposition = useUniformCurrentComposition;
+var Composition = UniformComposition;
+
+// src/hooks/useCompositionEventEffect.ts
+
+
+function useCompositionEventEffect({
+  enabled,
+  projectId,
+  compositionId,
+  effect
+}) {
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (!enabled || !compositionId || !projectId) {
+      return;
+    }
+    let goodbye = void 0;
+    const loadEffect = async () => {
+      const eventBus = await (0,_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.createEventBus)();
+      if (eventBus) {
+        goodbye = (0,_uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.subscribeToComposition)({
+          eventBus,
+          compositionId,
+          compositionState: _uniformdev_canvas__WEBPACK_IMPORTED_MODULE_1__.CANVAS_DRAFT_STATE,
+          projectId,
+          callback: effect,
+          event: "updated"
+        });
+      }
+    };
+    loadEffect();
+    return () => {
+      if (goodbye) {
+        goodbye();
+      }
+    };
+  }, [compositionId, enabled, projectId, effect]);
+}
+
+
+
+/***/ }),
+
 /***/ "./node_modules/@uniformdev/canvas-sanity/dist/index.mjs":
 /*!***************************************************************!*\
   !*** ./node_modules/@uniformdev/canvas-sanity/dist/index.mjs ***!
@@ -26227,6 +27462,426 @@ var CanvasClientError = _uniformdev_context_api__WEBPACK_IMPORTED_MODULE_0__.Api
 
 /***/ }),
 
+/***/ "./node_modules/@uniformdev/context-react/dist/index.mjs":
+/*!***************************************************************!*\
+  !*** ./node_modules/@uniformdev/context-react/dist/index.mjs ***!
+  \***************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Personalize": () => (/* binding */ Personalize),
+/* harmony export */   "Test": () => (/* binding */ Test),
+/* harmony export */   "Track": () => (/* binding */ Track),
+/* harmony export */   "TrackFragment": () => (/* binding */ TrackFragment),
+/* harmony export */   "UniformContext": () => (/* binding */ UniformContext),
+/* harmony export */   "useQuirks": () => (/* binding */ useQuirks),
+/* harmony export */   "useScores": () => (/* binding */ useScores),
+/* harmony export */   "useUniformContext": () => (/* binding */ useUniformContext)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+/* harmony import */ var dequal_lite__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! dequal/lite */ "./node_modules/dequal/lite/index.mjs");
+/* harmony import */ var _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @uniformdev/context */ "./node_modules/@uniformdev/context/dist/index.mjs");
+/* harmony import */ var cookie__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! cookie */ "./node_modules/@uniformdev/context-react/node_modules/cookie/index.js");
+// src/hooks/useQuirks.ts
+
+function useQuirks() {
+  const { context } = useUniformContext();
+  const [quirks, setQuirks] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(context.quirks);
+  const quirkChangeListener = (updatedQuirks) => {
+    setQuirks(updatedQuirks);
+  };
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    context.events.on("quirksUpdated", quirkChangeListener);
+    return () => {
+      context.events.off("quirksUpdated", quirkChangeListener);
+    };
+  }, [context]);
+  return quirks;
+}
+
+// src/hooks/useScores.ts
+
+
+function useScores() {
+  const { context } = useUniformContext();
+  const [scores, setScores] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(context.scores);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const scoringChangeListener = (updatedScores) => {
+      setScores(updatedScores);
+    };
+    const currentScores = context.scores;
+    if (!(0,dequal_lite__WEBPACK_IMPORTED_MODULE_1__.dequal)(scores, currentScores)) {
+      setScores(currentScores);
+    }
+    context.events.on("scoresUpdated", scoringChangeListener);
+    return () => {
+      context.events.off("scoresUpdated", scoringChangeListener);
+    };
+  }, [context]);
+  return scores;
+}
+
+// src/hooks/useUniformContext.ts
+
+
+// src/contexts.tsx
+
+var UniformContextContext = (0,react__WEBPACK_IMPORTED_MODULE_0__.createContext)(void 0);
+var PersonalizationContext = (0,react__WEBPACK_IMPORTED_MODULE_0__.createContext)({});
+
+// src/hooks/useUniformContext.ts
+function useUniformContext(options = {}) {
+  const { throwOnMissingProvider = true } = options;
+  const value = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(UniformContextContext);
+  if (throwOnMissingProvider) {
+    if (value === void 0) {
+      throw new Error("useUniformContext must be used within a <UniformContext> provider");
+    }
+    return value;
+  }
+  return value;
+}
+
+// src/components/Personalize.tsx
+
+
+// src/constants.ts
+var isServer = typeof window === "undefined";
+
+// src/components/PersonalizeEdge.tsx
+
+
+
+// src/components/EdgeTag.tsx
+
+
+var EdgeTag = (props) => {
+  return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.EdgeNodeTagName, props);
+};
+
+// src/components/PersonalizeEdge.tsx
+function PersonalizeEdge(props) {
+  const { variations, count, component } = props;
+  const options = {
+    name: props.name,
+    count: count != null ? count : 1
+  };
+  const Component = component;
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+    EdgeTag,
+    {
+      "data-type": _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.ScriptType.ListStart,
+      dangerouslySetInnerHTML: { __html: JSON.stringify(options) }
+    }
+  ), variations.map((variant) => /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, { key: variant.id }, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+    EdgeTag,
+    {
+      "data-type": _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.ScriptType.ListItemSettings,
+      dangerouslySetInnerHTML: {
+        __html: JSON.stringify({
+          id: variant.id,
+          pz: variant.pz || null
+        })
+      }
+    }
+  ), /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(EdgeTag, { "data-type": _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.ScriptType.ListItem }, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+    Component,
+    {
+      key: variant.id,
+      personalizationResult: { variation: variant, personalizationOccurred: false },
+      ...variant
+    }
+  )))), /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(EdgeTag, { "data-type": _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.ScriptType.ListEnd }));
+}
+
+// src/components/PersonalizeStandard.tsx
+
+function PersonalizeStandard({
+  variations,
+  component,
+  wrapperComponent,
+  name,
+  count = 1
+}) {
+  const { context } = useUniformContext();
+  const scores = useScores();
+  const { variations: personalizedVariations, personalized: personalizationOccurred } = (0,react__WEBPACK_IMPORTED_MODULE_0__.useMemo)(
+    () => context.personalize({
+      name,
+      variations,
+      take: count
+    }),
+    [scores, context, count, name, variations]
+  );
+  const Wrapper = wrapperComponent != null ? wrapperComponent : ({ children }) => /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, children);
+  const Component = component;
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(PersonalizationContext.Provider, { value: { personalized: true } }, personalizedVariations.length ? /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(Wrapper, { personalizationOccurred }, personalizedVariations.map((variant) => /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+    Component,
+    {
+      key: variant.id,
+      personalizationResult: { variation: variant, personalizationOccurred },
+      ...variant
+    }
+  ))) : null);
+}
+
+// src/components/Personalize.tsx
+function Personalize(props) {
+  var _a;
+  const { outputType } = (_a = useUniformContext({ throwOnMissingProvider: false })) != null ? _a : {};
+  if (!outputType) {
+    throw new Error(
+      "Using the <Personalize /> component requires the <UniformContext> provider to be present."
+    );
+  }
+  if (!isServer || outputType === "standard") {
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(PersonalizeStandard, { ...props });
+  } else if (outputType === "edge") {
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(PersonalizeEdge, { ...props });
+  }
+  return null;
+}
+
+// src/components/Test.tsx
+
+
+// src/components/TestEdge.tsx
+
+
+function TestEdge(props) {
+  const { name, variations, component } = props;
+  const options = {
+    name
+  };
+  const Component = component;
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+    EdgeTag,
+    {
+      "data-type": _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.ScriptType.TestStart,
+      dangerouslySetInnerHTML: { __html: JSON.stringify(options) }
+    }
+  ), variations.map((variation, index) => {
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, { key: variation.id }, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+      EdgeTag,
+      {
+        "data-type": _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.ScriptType.ListItemSettings,
+        dangerouslySetInnerHTML: {
+          __html: JSON.stringify({
+            id: variation.id
+          })
+        }
+      }
+    ), /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(EdgeTag, { "data-type": _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.ScriptType.ListItem }, /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(Component, { key: index, ...variation })));
+  }), /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(EdgeTag, { "data-type": _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.ScriptType.TestEnd }));
+}
+
+// src/components/TestStandard.tsx
+
+var TestStandard = ({
+  name,
+  variations,
+  component
+}) => {
+  const { context } = useUniformContext();
+  const { result } = context.test({
+    name,
+    variations
+  });
+  if (!result) {
+    return null;
+  }
+  const Component = component;
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(Component, { ...result });
+};
+
+// src/components/Test.tsx
+var Test = (props) => {
+  var _a;
+  const { outputType } = (_a = useUniformContext({ throwOnMissingProvider: false })) != null ? _a : {};
+  if (!outputType) {
+    throw new Error("Using the <Test /> component requires the <UniformContext> provider to be present.");
+  }
+  if (!isServer || outputType === "standard") {
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(TestStandard, { ...props });
+  } else if (outputType === "edge") {
+    return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(TestEdge, { ...props });
+  }
+  return null;
+};
+
+// src/components/Track.tsx
+
+
+// src/hooks/useIsPersonalized.ts
+
+var useIsPersonalized = (options) => {
+  const { personalized } = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(PersonalizationContext);
+  if (typeof personalized !== "undefined") {
+    return personalized;
+  }
+  if (typeof (options == null ? void 0 : options.personalized) !== "undefined") {
+    return options.personalized;
+  }
+  return false;
+};
+
+// src/components/Track.tsx
+var Track = ({
+  behavior,
+  children,
+  tagName = "div",
+  threshold = 0.5,
+  disableVisibilityTrigger = typeof window === "undefined" || !("IntersectionObserver" in window),
+  ...rest
+}) => {
+  const currentUrl = typeof document === "undefined" ? "__uniform_ssr_url" : document.location.href;
+  const { context } = useUniformContext();
+  const insidePersonalizeComponent = useIsPersonalized();
+  const [lastUrl, setLastUrl] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
+  const [hasTracked, setHasTracked] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const wrapperEl = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+  const disconnect = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)();
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const urlHasChanged = lastUrl !== currentUrl;
+    if (urlHasChanged) {
+      setHasTracked(false);
+      setLastUrl(currentUrl);
+    }
+  }, [currentUrl, lastUrl]);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    var _a;
+    const hasNoBehaviorValue = !behavior || Array.isArray(behavior) && !behavior.length;
+    const cannotTrack = insidePersonalizeComponent || hasNoBehaviorValue;
+    if (cannotTrack || !wrapperEl.current)
+      return;
+    const enrichments = Array.isArray(behavior) ? behavior : [behavior];
+    const pushBehaviorEnrichment = () => {
+      var _a2;
+      if (hasTracked) {
+        return;
+      }
+      context.update({
+        enrichments
+      });
+      setHasTracked(true);
+      (_a2 = disconnect.current) == null ? void 0 : _a2.call(disconnect);
+    };
+    if (disableVisibilityTrigger) {
+      pushBehaviorEnrichment();
+    } else {
+      (_a = disconnect.current) == null ? void 0 : _a.call(disconnect);
+      const instance = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            pushBehaviorEnrichment();
+          }
+        },
+        {
+          threshold
+        }
+      );
+      instance.observe(wrapperEl.current);
+      disconnect.current = () => {
+        var _a2;
+        return (_a2 = instance.disconnect) == null ? void 0 : _a2.call(instance);
+      };
+    }
+    return () => {
+      var _a2;
+      (_a2 = disconnect.current) == null ? void 0 : _a2.call(disconnect);
+    };
+  }, [
+    context,
+    behavior,
+    disableVisibilityTrigger,
+    threshold,
+    insidePersonalizeComponent,
+    lastUrl,
+    currentUrl,
+    hasTracked
+  ]);
+  const element = (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(tagName, { ...rest, ref: wrapperEl }, children);
+  return element;
+};
+
+// src/components/TrackFragment.tsx
+
+
+var TrackFragment = ({ behavior, children }) => {
+  const currentUrl = typeof document === "undefined" ? "__uniform_ssr_url" : document.location.href;
+  const { context } = useUniformContext();
+  const insidePersonalizeComponent = useIsPersonalized();
+  const [lastUrl, setLastUrl] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)();
+  const [hasTracked, setHasTracked] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const urlHasChanged = lastUrl !== currentUrl;
+    if (urlHasChanged) {
+      setHasTracked(false);
+      setLastUrl(currentUrl);
+    }
+  }, [currentUrl, lastUrl]);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const hasNoBehaviorValue = !behavior || Array.isArray(behavior) && !behavior.length;
+    const cannotTrack = insidePersonalizeComponent || hasNoBehaviorValue;
+    if (cannotTrack)
+      return;
+    const pushBehaviorEnrichment = () => {
+      if (hasTracked) {
+        return;
+      }
+      const enrichments = Array.isArray(behavior) ? behavior : [behavior];
+      context.update({
+        enrichments
+      });
+      setHasTracked(true);
+    };
+    pushBehaviorEnrichment();
+  }, [context, behavior, insidePersonalizeComponent, hasTracked]);
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, children);
+};
+
+// src/components/UniformContext.tsx
+
+
+
+var UniformContext = ({
+  context,
+  children,
+  outputType = "standard",
+  trackRouteOnRender = true
+}) => {
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (isServer || !trackRouteOnRender) {
+      return;
+    }
+    context.update({
+      url: new URL(window.location.href),
+      cookies: cookie__WEBPACK_IMPORTED_MODULE_3__.parse(document.cookie)
+    });
+  });
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(UniformContextContext.Provider, { value: { context, outputType } }, children, isServer ? /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(TransferState, null) : null);
+};
+function TransferState() {
+  const { context } = useUniformContext();
+  const transferState = context.getServerToClientTransitionState();
+  return /* @__PURE__ */ react__WEBPACK_IMPORTED_MODULE_0__.createElement(
+    "script",
+    {
+      id: _uniformdev_context__WEBPACK_IMPORTED_MODULE_2__.SERVER_STATE_ID,
+      type: "application/json",
+      dangerouslySetInnerHTML: {
+        __html: JSON.stringify(transferState)
+      }
+    }
+  );
+}
+
+
+
+/***/ }),
+
 /***/ "./node_modules/@uniformdev/context/dist/api/api.mjs":
 /*!***********************************************************!*\
   !*** ./node_modules/@uniformdev/context/dist/api/api.mjs ***!
@@ -26791,6 +28446,2075 @@ var CachedContextClient = class extends ContextClient {
   }
 };
 
+
+
+/***/ }),
+
+/***/ "./node_modules/@uniformdev/context/dist/index.mjs":
+/*!*********************************************************!*\
+  !*** ./node_modules/@uniformdev/context/dist/index.mjs ***!
+  \*********************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Context": () => (/* binding */ Context),
+/* harmony export */   "CookieTransitionDataStore": () => (/* binding */ CookieTransitionDataStore),
+/* harmony export */   "EdgeNodeTagName": () => (/* binding */ EdgeNodeTagName),
+/* harmony export */   "EdgeTransitionDataStore": () => (/* binding */ EdgeTransitionDataStore),
+/* harmony export */   "GroupCriteriaEvaluator": () => (/* binding */ GroupCriteriaEvaluator),
+/* harmony export */   "ManifestInstance": () => (/* binding */ ManifestInstance),
+/* harmony export */   "SERVER_STATE_ID": () => (/* binding */ SERVER_STATE_ID),
+/* harmony export */   "ScriptType": () => (/* binding */ ScriptType),
+/* harmony export */   "TransitionDataStore": () => (/* binding */ TransitionDataStore),
+/* harmony export */   "UNIFORM_DEFAULT_COOKIE_NAME": () => (/* binding */ UNIFORM_DEFAULT_COOKIE_NAME),
+/* harmony export */   "VisitorDataStore": () => (/* binding */ VisitorDataStore),
+/* harmony export */   "computeAggregateDimensions": () => (/* binding */ computeAggregateDimensions),
+/* harmony export */   "cookieEvaluator": () => (/* binding */ cookieEvaluator),
+/* harmony export */   "createConsoleLogDrain": () => (/* binding */ createConsoleLogDrain),
+/* harmony export */   "createDebugConsoleLogDrain": () => (/* binding */ createDebugConsoleLogDrain),
+/* harmony export */   "createLinearDecay": () => (/* binding */ createLinearDecay),
+/* harmony export */   "currentPageEvaluator": () => (/* binding */ currentPageEvaluator),
+/* harmony export */   "emptyVisitorData": () => (/* binding */ emptyVisitorData),
+/* harmony export */   "enableConsoleLogDrain": () => (/* binding */ enableConsoleLogDrain),
+/* harmony export */   "enableContextDevTools": () => (/* binding */ enableContextDevTools),
+/* harmony export */   "enableDebugConsoleLogDrain": () => (/* binding */ enableDebugConsoleLogDrain),
+/* harmony export */   "evaluateVariantMatch": () => (/* binding */ evaluateVariantMatch),
+/* harmony export */   "eventEvaluator": () => (/* binding */ eventEvaluator),
+/* harmony export */   "explainStringMatch": () => (/* binding */ explainStringMatch),
+/* harmony export */   "explainStringMatchCriteria": () => (/* binding */ explainStringMatchCriteria),
+/* harmony export */   "getEnrichmentVectorKey": () => (/* binding */ getEnrichmentVectorKey),
+/* harmony export */   "isStringMatch": () => (/* binding */ isStringMatch),
+/* harmony export */   "pageViewCountDimension": () => (/* binding */ pageViewCountDimension),
+/* harmony export */   "pageViewCountEvaluator": () => (/* binding */ pageViewCountEvaluator),
+/* harmony export */   "parseQuickConnect": () => (/* binding */ parseQuickConnect),
+/* harmony export */   "personalizeVariations": () => (/* binding */ personalizeVariations),
+/* harmony export */   "queryStringEvaluator": () => (/* binding */ queryStringEvaluator),
+/* harmony export */   "quirkEvaluator": () => (/* binding */ quirkEvaluator),
+/* harmony export */   "serializeQuickConnect": () => (/* binding */ serializeQuickConnect),
+/* harmony export */   "testVariations": () => (/* binding */ testVariations)
+/* harmony export */ });
+/* harmony import */ var dequal_lite__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! dequal/lite */ "./node_modules/dequal/lite/index.mjs");
+/* harmony import */ var js_cookie__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! js-cookie */ "./node_modules/js-cookie/dist/js.cookie.mjs");
+/* harmony import */ var mitt__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! mitt */ "./node_modules/@uniformdev/context/node_modules/mitt/dist/mitt.mjs");
+/* harmony import */ var rfdc__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! rfdc */ "./node_modules/rfdc/index.js");
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
+};
+var __accessCheck = (obj, member, msg) => {
+  if (!member.has(obj))
+    throw TypeError("Cannot " + msg);
+};
+var __privateGet = (obj, member, getter) => {
+  __accessCheck(obj, member, "read from private field");
+  return getter ? getter.call(obj) : member.get(obj);
+};
+var __privateAdd = (obj, member, value) => {
+  if (member.has(obj))
+    throw TypeError("Cannot add the same private member more than once");
+  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+};
+var __privateSet = (obj, member, value, setter) => {
+  __accessCheck(obj, member, "write to private field");
+  setter ? setter.call(obj, value) : member.set(obj, value);
+  return value;
+};
+var __privateMethod = (obj, member, method) => {
+  __accessCheck(obj, member, "access private method");
+  return method;
+};
+
+// src/manifest/aggregates/computeAggregateDimensions.ts
+function computeAggregateDimensions(primitiveScores, aggregates) {
+  const result = { ...primitiveScores };
+  for (const aggregateDimension in aggregates) {
+    const aggregateScore = computeAggregateDimension(
+      primitiveScores,
+      aggregateDimension,
+      aggregates,
+      /* @__PURE__ */ new Set([aggregateDimension])
+    );
+    if (aggregateScore !== 0) {
+      result[aggregateDimension] = aggregateScore;
+    }
+  }
+  return result;
+}
+function computeAggregateDimension(primitiveScores, aggregateDimension, allAggregates, visitedDimensions) {
+  var _a;
+  let aggregateScore = 0;
+  for (const input of allAggregates[aggregateDimension].inputs) {
+    let currentScore = (_a = primitiveScores[input.dim]) != null ? _a : 0;
+    if (!currentScore) {
+      const aggRef = allAggregates[input.dim];
+      if (aggRef) {
+        if (visitedDimensions.has(input.dim)) {
+          continue;
+        }
+        const newVisited = new Set(visitedDimensions);
+        newVisited.add(input.dim);
+        currentScore = computeAggregateDimension(primitiveScores, input.dim, allAggregates, newVisited);
+      }
+    }
+    if (currentScore !== 0) {
+      if (input.sign === "c") {
+        aggregateScore = 0;
+        break;
+      } else if (input.sign === "-") {
+        aggregateScore -= currentScore;
+      } else {
+        aggregateScore += currentScore;
+      }
+    }
+  }
+  return aggregateScore;
+}
+
+// src/manifest/constants.ts
+var ENR_SEPARATOR = "_";
+
+// src/manifest/signals/SignalInstance.ts
+var _evaluator, _onLogMessage;
+var SignalInstance = class {
+  constructor(data, evaluator, onLogMessage) {
+    __privateAdd(this, _evaluator, void 0);
+    __privateAdd(this, _onLogMessage, void 0);
+    __publicField(this, "signal");
+    this.signal = data;
+    __privateSet(this, _evaluator, evaluator);
+    __privateSet(this, _onLogMessage, onLogMessage);
+  }
+  computeSignal(update, commands) {
+    const isAtCap = update.scores[this.signal.id] >= this.signal.cap;
+    if (isAtCap && this.signal.dur !== "t") {
+      return;
+    }
+    const criteriaMatchUpdate = __privateGet(this, _evaluator).evaluate(
+      update,
+      this.signal.crit,
+      commands,
+      this.signal,
+      __privateGet(this, _onLogMessage)
+    );
+    const scoreCommand = this.signal.dur === "s" || this.signal.dur === "t" ? "modscoreS" : "modscore";
+    if (!criteriaMatchUpdate.changed) {
+      return;
+    }
+    if (criteriaMatchUpdate.result) {
+      commands.push({
+        type: scoreCommand,
+        data: { dimension: this.signal.id, delta: this.signal.str }
+      });
+    } else if (this.signal.dur === "t") {
+      const sessionScore = update.visitor.sessionScores[this.signal.id];
+      if (sessionScore) {
+        commands.push({
+          type: scoreCommand,
+          data: { dimension: this.signal.id, delta: -sessionScore }
+        });
+      }
+    }
+  }
+};
+_evaluator = new WeakMap();
+_onLogMessage = new WeakMap();
+
+// src/manifest/ManifestInstance.ts
+var _mf, _signalInstances, _onLogMessage2;
+var ManifestInstance = class {
+  constructor({
+    manifest,
+    evaluator = new GroupCriteriaEvaluator({}),
+    onLogMessage = () => {
+    }
+  }) {
+    __publicField(this, "data");
+    __privateAdd(this, _mf, void 0);
+    __privateAdd(this, _signalInstances, void 0);
+    __privateAdd(this, _onLogMessage2, void 0);
+    var _a, _b, _c;
+    __privateSet(this, _mf, (_a = manifest.project) != null ? _a : {});
+    this.data = manifest;
+    __privateSet(this, _signalInstances, Object.entries((_c = (_b = __privateGet(this, _mf).pz) == null ? void 0 : _b.sig) != null ? _c : []).map(
+      ([id, signal]) => new SignalInstance({ ...signal, id }, evaluator, onLogMessage)
+    ));
+    __privateSet(this, _onLogMessage2, onLogMessage);
+  }
+  rollForControlGroup() {
+    var _a, _b;
+    return Math.random() < ((_b = (_a = __privateGet(this, _mf).pz) == null ? void 0 : _a.control) != null ? _b : 0);
+  }
+  getTest(name) {
+    var _a;
+    return (_a = __privateGet(this, _mf).test) == null ? void 0 : _a[name];
+  }
+  computeSignals(update) {
+    const commands = [];
+    __privateGet(this, _onLogMessage2).call(this, ["debug", 200, "GROUP"]);
+    try {
+      __privateGet(this, _signalInstances).forEach((signal) => {
+        __privateGet(this, _onLogMessage2).call(this, ["debug", 201, "GROUP", signal.signal]);
+        try {
+          signal.computeSignal(update, commands);
+        } finally {
+          __privateGet(this, _onLogMessage2).call(this, ["debug", 201, "ENDGROUP"]);
+        }
+      });
+    } finally {
+      __privateGet(this, _onLogMessage2).call(this, ["debug", 200, "ENDGROUP"]);
+    }
+    return commands;
+  }
+  computeAggregateDimensions(primitiveScores) {
+    var _a, _b;
+    return computeAggregateDimensions(primitiveScores, (_b = (_a = __privateGet(this, _mf).pz) == null ? void 0 : _a.agg) != null ? _b : {});
+  }
+  getDimensionByKey(scoreKey) {
+    var _a, _b, _c, _d;
+    const enrichmentIndex = scoreKey.indexOf(ENR_SEPARATOR);
+    if (enrichmentIndex <= 0) {
+      return (_b = (_a = __privateGet(this, _mf).pz) == null ? void 0 : _a.sig) == null ? void 0 : _b[scoreKey];
+    }
+    return (_d = (_c = __privateGet(this, _mf).pz) == null ? void 0 : _c.enr) == null ? void 0 : _d[scoreKey.substring(0, enrichmentIndex)];
+  }
+};
+_mf = new WeakMap();
+_signalInstances = new WeakMap();
+_onLogMessage2 = new WeakMap();
+
+// src/manifest/signals/criteria/evaluators/cookieEvaluator.ts
+
+
+// src/manifest/signals/criteria/util/isStringMatch.ts
+function isStringMatch(lhs, match) {
+  var _a, _b, _c, _d, _e, _f;
+  const type = (_a = match == null ? void 0 : match.op) != null ? _a : "=";
+  if (match.op === "*") {
+    return lhs !== null && typeof lhs !== "undefined";
+  }
+  if (match.op === "!*") {
+    return lhs === null || typeof lhs === "undefined";
+  }
+  if (!("rhs" in match)) {
+    throw new Error(`Match expression is required for match type ${type}`);
+  }
+  const caseSensitive = (_b = match.cs) != null ? _b : false;
+  const localRhs = (caseSensitive ? lhs != null ? lhs : "" : caseDesensitize(lhs)).toString();
+  const localLhs = (caseSensitive ? match.rhs : caseDesensitize(match.rhs)).toString();
+  switch (type) {
+    case "=":
+      return localRhs === localLhs;
+    case "!=":
+      return localRhs !== localLhs;
+    case "~":
+      return (_c = localRhs.includes(localLhs)) != null ? _c : false;
+    case "!~":
+      return !((_d = localRhs.includes(localLhs)) != null ? _d : true);
+    case "//":
+      return new RegExp(match.rhs.toString(), caseSensitive ? "" : "i").test((_e = lhs == null ? void 0 : lhs.toString()) != null ? _e : "");
+    case "!//":
+      return !new RegExp(match.rhs.toString(), caseSensitive ? "" : "i").test((_f = lhs == null ? void 0 : lhs.toString()) != null ? _f : "");
+    default:
+      throw new Error(`Unknown match type ${type}.`);
+  }
+}
+function explainStringMatch(lhs, match) {
+  const cs = "cs" in match ? match.cs : false;
+  return `'${cs ? lhs : lhs == null ? void 0 : lhs.toString().toUpperCase()}' ${explainStringMatchCriteria(match)}`;
+}
+function explainStringMatchCriteria(match) {
+  if ("rhs" in match) {
+    return `${match.op} '${match.cs ? match.rhs : match.rhs.toString().toUpperCase()}'`;
+  }
+  return `${match.op === "*" ? "exists" : "does not exist"}`;
+}
+function caseDesensitize(value) {
+  var _a, _b;
+  return (_b = (_a = value == null ? void 0 : value.toString()) == null ? void 0 : _a.toUpperCase()) != null ? _b : "";
+}
+
+// src/manifest/signals/criteria/evaluators/cookieEvaluator.ts
+var cookieEvaluator = ({ update, criteria, onLogMessage }) => {
+  var _a, _b;
+  if (criteria.type !== "CK") {
+    return { result: false, changed: false };
+  }
+  const changed = !(0,dequal_lite__WEBPACK_IMPORTED_MODULE_0__.dequal)(cleanCookies(update.state.cookies), cleanCookies((_a = update.previousState) == null ? void 0 : _a.cookies));
+  const value = (_b = update.state.cookies) == null ? void 0 : _b[criteria.cookieName];
+  const result = isStringMatch(value, criteria.match);
+  const finalResult = { result, changed };
+  onLogMessage == null ? void 0 : onLogMessage([
+    "debug",
+    203,
+    { criteria, result: finalResult, explanation: explainStringMatch(value, criteria.match) }
+  ]);
+  return finalResult;
+};
+function cleanCookies(cookie) {
+  if (!cookie) {
+    return void 0;
+  }
+  if (!cookie.ufvd) {
+    return cookie;
+  }
+  const { ufvd, ...rest } = cookie;
+  return rest;
+}
+
+// src/manifest/signals/criteria/evaluators/currentPageEvaluator.ts
+var currentPageEvaluator = ({ update, criteria, onLogMessage }) => {
+  var _a, _b, _c;
+  if (criteria.type !== "PV") {
+    return { result: false, changed: false };
+  }
+  const value = (_a = update.state.url) == null ? void 0 : _a.pathname;
+  const hasUrlChanged = !update.previousState || (value == null ? void 0 : value.toString()) !== ((_c = (_b = update.previousState.url) == null ? void 0 : _b.pathname) == null ? void 0 : _c.toString());
+  const result = isStringMatch(value, criteria.path);
+  const finalResult = { result, changed: hasUrlChanged };
+  onLogMessage == null ? void 0 : onLogMessage([
+    "debug",
+    203,
+    { criteria, result: finalResult, explanation: explainStringMatch(value, criteria.path) }
+  ]);
+  return finalResult;
+};
+
+// src/manifest/signals/criteria/evaluators/eventEvaluator.ts
+var eventEvaluator = ({ update, criteria, onLogMessage }) => {
+  var _a, _b, _c;
+  if (criteria.type !== "EVT") {
+    return { result: false, changed: false };
+  }
+  const result = (_b = (_a = update.state.events) == null ? void 0 : _a.some((event) => isStringMatch(event.event, criteria.event))) != null ? _b : false;
+  const finalResult = { result, changed: result };
+  onLogMessage == null ? void 0 : onLogMessage([
+    "debug",
+    203,
+    {
+      criteria,
+      result: finalResult,
+      explanation: `'${(_c = update.state.events) == null ? void 0 : _c.join("', '")}' ${explainStringMatchCriteria(criteria.event)}`
+    }
+  ]);
+  return finalResult;
+};
+
+// src/manifest/utils/getEnrichmentVectorKey.ts
+function getEnrichmentVectorKey(category, value) {
+  return `${category}${ENR_SEPARATOR}${value}`;
+}
+
+// src/manifest/signals/criteria/util/isNumberMatch.ts
+function isNumberMatch(lhs, match) {
+  var _a;
+  if (typeof lhs === "undefined" || lhs === null) {
+    return false;
+  }
+  const lhsValue = Number(lhs);
+  if (isNaN(lhsValue)) {
+    return false;
+  }
+  switch ((_a = match == null ? void 0 : match.op) != null ? _a : "=") {
+    case "=":
+      return lhsValue === match.rhs;
+    case "!=":
+      return lhsValue !== match.rhs;
+    case ">":
+      return lhsValue > match.rhs;
+    case "<":
+      return lhsValue < match.rhs;
+    default:
+      console.warn(`Unknown match type ${match.op} is false.`);
+      return false;
+  }
+}
+function explainNumberMatch(lhs, match) {
+  return `${lhs} ${explainNumberMatchCriteria(match)}`;
+}
+function explainNumberMatchCriteria(match) {
+  return `${match.op} ${match.rhs}`;
+}
+
+// src/manifest/signals/criteria/evaluators/pageViewCountEvaluator.ts
+var pageViewCountDimension = getEnrichmentVectorKey("$pvc", "v");
+var pageViewCountEvaluator = ({ update, criteria, commands, onLogMessage }) => {
+  var _a, _b;
+  if (criteria.type !== "PVC") {
+    return { result: false, changed: false };
+  }
+  const hasUrlChanged = Boolean(
+    update.state.url && (!update.previousState || ((_a = update.state.url) == null ? void 0 : _a.toString()) !== ((_b = update.previousState.url) == null ? void 0 : _b.toString()))
+  );
+  const existingValueNumber = update.visitor.sessionScores[pageViewCountDimension] || 0;
+  const updatedCount = existingValueNumber + 1;
+  const finalResult = { result: false, changed: hasUrlChanged };
+  const hasExistingPageViewIncrementCommand = commands.some(
+    (c) => c.type === "modscoreS" && c.data.dimension === pageViewCountDimension
+  );
+  if (hasUrlChanged && !hasExistingPageViewIncrementCommand) {
+    commands.push({
+      type: "modscoreS",
+      data: {
+        dimension: pageViewCountDimension,
+        delta: 1
+      }
+    });
+  }
+  if (isNumberMatch(updatedCount, criteria.match)) {
+    finalResult.result = true;
+  }
+  onLogMessage == null ? void 0 : onLogMessage([
+    "debug",
+    203,
+    { criteria, result: finalResult, explanation: explainNumberMatch(updatedCount, criteria.match) }
+  ]);
+  return finalResult;
+};
+pageViewCountEvaluator.alwaysExecute = true;
+
+// src/manifest/signals/criteria/evaluators/queryStringEvaluator.ts
+var queryStringEvaluator = ({ update, criteria, onLogMessage }) => {
+  var _a, _b, _c, _d, _e;
+  if (criteria.type !== "QS") {
+    return { result: false, changed: false };
+  }
+  const hasQueryChanged = !update.previousState || ((_b = (_a = update.state.url) == null ? void 0 : _a.searchParams) == null ? void 0 : _b.toString()) !== ((_d = (_c = update.previousState.url) == null ? void 0 : _c.searchParams) == null ? void 0 : _d.toString());
+  const value = (_e = update.state.url) == null ? void 0 : _e.searchParams.get(criteria.queryName);
+  const result = isStringMatch(value, criteria.match);
+  const finalResult = { result, changed: hasQueryChanged };
+  onLogMessage == null ? void 0 : onLogMessage([
+    "debug",
+    203,
+    { criteria, result: finalResult, explanation: explainStringMatch(value, criteria.match) }
+  ]);
+  return finalResult;
+};
+
+// src/manifest/signals/criteria/evaluators/quirkEvaluator.ts
+var quirkEvaluator = ({ update, criteria, signal, onLogMessage }) => {
+  var _a;
+  if (criteria.type !== "QK") {
+    return { result: false, changed: false };
+  }
+  if (typeof document === "undefined" && update.scores[signal.id] > 0) {
+    return { result: true, changed: false };
+  }
+  const visitorValue = update.visitor.quirks[criteria.key];
+  const updateValue = (_a = update.state.quirks) == null ? void 0 : _a[criteria.key];
+  const value = updateValue != null ? updateValue : visitorValue;
+  const changed = Boolean(updateValue && visitorValue !== updateValue);
+  const result = isStringMatch(value, criteria.match);
+  const finalResult = { result, changed };
+  onLogMessage == null ? void 0 : onLogMessage([
+    "debug",
+    203,
+    { criteria, result: finalResult, explanation: explainStringMatch(value, criteria.match) }
+  ]);
+  return finalResult;
+};
+
+// src/manifest/signals/criteria/GroupCriteriaEvaluator.ts
+var _evaluators;
+var GroupCriteriaEvaluator = class {
+  constructor(criteriaEvaluators) {
+    __privateAdd(this, _evaluators, void 0);
+    __privateSet(this, _evaluators, criteriaEvaluators);
+  }
+  evaluate(update, crit, commands, signal, onLogMessage) {
+    const hasMultipleClauses = crit.clauses.length > 1;
+    if (hasMultipleClauses) {
+      onLogMessage == null ? void 0 : onLogMessage(["debug", 202, "GROUP", crit]);
+    }
+    try {
+      const earlyExitEvaluatorResult = crit.op === "&" || !crit.op ? false : true;
+      let earlyExitResult = null;
+      let isAnyChanged = false;
+      for (const criteria of crit.clauses) {
+        let result;
+        if (criteria.type === "G") {
+          result = this.evaluate(update, criteria, commands, signal, onLogMessage);
+        } else {
+          const evaluator = __privateGet(this, _evaluators)[criteria.type];
+          if (earlyExitResult && !evaluator.alwaysExecute) {
+            continue;
+          }
+          if (!evaluator) {
+            throw new Error(`${criteria.type} signal criteria not registered`);
+          }
+          result = evaluator({ update, criteria, commands, signal, onLogMessage });
+        }
+        if (result.changed) {
+          isAnyChanged = true;
+        }
+        if (!earlyExitResult && result.result === earlyExitEvaluatorResult) {
+          earlyExitResult = { result: earlyExitEvaluatorResult, changed: isAnyChanged };
+        }
+      }
+      const finalResult = earlyExitResult != null ? earlyExitResult : { result: !earlyExitEvaluatorResult, changed: isAnyChanged };
+      if (hasMultipleClauses) {
+        onLogMessage == null ? void 0 : onLogMessage(["debug", 204, finalResult]);
+      }
+      return finalResult;
+    } finally {
+      if (hasMultipleClauses) {
+        onLogMessage == null ? void 0 : onLogMessage(["debug", 202, "ENDGROUP"]);
+      }
+    }
+  }
+};
+_evaluators = new WeakMap();
+
+// src/placement/criteria/evaluateVariantMatch.ts
+function evaluateVariantMatch(variantId, match, vec, onLogMessage) {
+  onLogMessage == null ? void 0 : onLogMessage(["info", 301, "GROUP", { id: variantId, op: match == null ? void 0 : match.op }]);
+  let result;
+  try {
+    if (!(match == null ? void 0 : match.crit)) {
+      onLogMessage == null ? void 0 : onLogMessage(["info", 302, { matched: true, description: "default variation" }]);
+      result = true;
+    } else if (!match.op || match.op === "&") {
+      result = match.crit.every((c) => evaluateDimensionMatch(c, vec, onLogMessage));
+    } else {
+      result = match.crit.some((c) => evaluateDimensionMatch(c, vec, onLogMessage));
+    }
+    onLogMessage == null ? void 0 : onLogMessage(["info", 303, result]);
+  } finally {
+    onLogMessage == null ? void 0 : onLogMessage(["info", 301, "ENDGROUP"]);
+  }
+  return result;
+}
+function evaluateDimensionMatch(crit, vec, onLogMessage) {
+  var _a, _b;
+  const { op, l: lhs } = crit;
+  const lhsScore = (_a = vec[lhs]) != null ? _a : 0;
+  if (op === "+") {
+    const result = Math.max(...Object.values(vec)) === lhsScore && lhsScore > 0;
+    onLogMessage == null ? void 0 : onLogMessage([
+      "info",
+      302,
+      {
+        matched: result,
+        description: `${crit.l} has the highest score`
+      }
+    ]);
+    return result;
+  } else if (op === "-") {
+    const result = Math.min(...Object.values(vec)) === lhsScore && lhsScore > 0;
+    onLogMessage == null ? void 0 : onLogMessage([
+      "info",
+      302,
+      {
+        matched: result,
+        description: `${crit.l} has the lowest non-zero score`
+      }
+    ]);
+    return result;
+  }
+  let rhsScore;
+  if (crit.rDim) {
+    rhsScore = vec[crit.rDim] || 0;
+  } else {
+    rhsScore = parseInt(crit.r, 10);
+  }
+  if (isNaN(rhsScore)) {
+    onLogMessage == null ? void 0 : onLogMessage([
+      "info",
+      302,
+      {
+        matched: false,
+        description: `${(_b = crit.rDim) != null ? _b : crit.r} has no score value`
+      }
+    ]);
+    return false;
+  }
+  if (op === ">") {
+    const result = lhsScore > rhsScore;
+    explain(onLogMessage, result, crit, lhsScore, rhsScore);
+    return result;
+  } else if (op === ">=") {
+    const result = lhsScore >= rhsScore;
+    explain(onLogMessage, result, crit, lhsScore, rhsScore);
+    return result;
+  } else if (op === "<") {
+    const result = lhsScore < rhsScore;
+    explain(onLogMessage, result, crit, lhsScore, rhsScore);
+    return result;
+  } else if (op === "<=") {
+    const result = lhsScore <= rhsScore;
+    explain(onLogMessage, result, crit, lhsScore, rhsScore);
+    return result;
+  } else if (op === "=") {
+    const result = lhsScore === rhsScore;
+    explain(onLogMessage, result, crit, lhsScore, rhsScore);
+    return result;
+  } else if (op === "!=") {
+    const result = lhsScore !== rhsScore;
+    explain(onLogMessage, result, crit, lhsScore, rhsScore);
+    return result;
+  } else {
+    throw new Error(`Unknown op: ${op}`);
+  }
+}
+function explain(onLogMessage, result, crit, lhsScore, rhsScore) {
+  onLogMessage == null ? void 0 : onLogMessage([
+    "info",
+    302,
+    {
+      matched: result,
+      description: `${crit.l}[${lhsScore}] ${crit.op} ${crit.rDim ? `${crit.rDim}[${rhsScore}]` : crit.r}`
+    }
+  ]);
+}
+
+// src/placement/personalize.ts
+function personalizeVariations({
+  name,
+  context,
+  variations,
+  take = 1,
+  onLogMessage
+}) {
+  var _a, _b, _c;
+  onLogMessage == null ? void 0 : onLogMessage(["info", 300, "GROUP", { name, take }]);
+  try {
+    const control = (_a = context.storage.data.controlGroup) != null ? _a : false;
+    const results = [];
+    let personalized = false;
+    const scores = context.scores;
+    for (const variant of variations) {
+      if (results.length === take) {
+        break;
+      }
+      if (!((_b = variant.pz) == null ? void 0 : _b.crit.length)) {
+        onLogMessage == null ? void 0 : onLogMessage(["info", 301, "GROUP", { id: variant.id, op: (_c = variant.pz) == null ? void 0 : _c.op }]);
+        onLogMessage == null ? void 0 : onLogMessage(["info", 302, { matched: true, description: "default variation" }]);
+        onLogMessage == null ? void 0 : onLogMessage(["info", 303, true]);
+        onLogMessage == null ? void 0 : onLogMessage(["info", 301, "ENDGROUP"]);
+        results.push(variant);
+        continue;
+      }
+      if (control) {
+        continue;
+      }
+      if (evaluateVariantMatch(variant.id, variant.pz, scores, onLogMessage)) {
+        personalized = true;
+        results.push(variant);
+      }
+    }
+    return {
+      personalized,
+      variations: results
+    };
+  } finally {
+    onLogMessage == null ? void 0 : onLogMessage(["info", 300, "ENDGROUP"]);
+  }
+}
+
+// src/placement/test.ts
+var normalizeVariationDistributions = (variations) => {
+  const { values, total, missingDistribution } = variations.reduce(
+    (previous, current) => {
+      if (current.testDistribution) {
+        previous.total += current.testDistribution;
+      } else {
+        ++previous.missingDistribution;
+      }
+      previous.values.push(current.testDistribution);
+      return previous;
+    },
+    {
+      values: [],
+      total: 0,
+      missingDistribution: 0
+    }
+  );
+  if (total > 100) {
+    throw new Error(`Total distribution ${total} is over the maximum 100.`);
+  } else if (total < 100) {
+    const remainder = 100 - total;
+    const missingSlice = remainder / missingDistribution;
+    values.forEach((value, index) => {
+      if (typeof value === "undefined") {
+        values[index] = missingSlice;
+      }
+    });
+  }
+  return values;
+};
+var testVariations = ({
+  name,
+  context,
+  variations,
+  onLogMessage
+}) => {
+  onLogMessage == null ? void 0 : onLogMessage(["info", 400, "GROUP", name]);
+  try {
+    let selectedVariant;
+    const selectedVariantId = context.getTestVariantId(name);
+    if (selectedVariantId === null) {
+      onLogMessage == null ? void 0 : onLogMessage(["error", 401, name]);
+      return { result: void 0, variantAssigned: false };
+    }
+    if (selectedVariantId) {
+      selectedVariant = variations.find((variation) => variation.id === selectedVariantId);
+      if (!selectedVariant) {
+        onLogMessage == null ? void 0 : onLogMessage([
+          "warn",
+          402,
+          { missingVariant: selectedVariantId, variants: variations.map((v) => v.id) }
+        ]);
+      }
+    }
+    if (!selectedVariant) {
+      const distributions = normalizeVariationDistributions(variations);
+      const random = Math.floor(Math.random() * 100);
+      let distributionOffset = 0;
+      selectedVariant = variations.find((variant, index) => {
+        const distribution = distributions[index];
+        if (random > distributionOffset && random <= distributionOffset + distribution) {
+          return variant;
+        }
+        distributionOffset += distribution;
+      });
+      if (selectedVariant) {
+        onLogMessage == null ? void 0 : onLogMessage(["info", 403, selectedVariant.id]);
+        context.setTestVariantId(name, selectedVariant.id);
+      }
+    }
+    if (selectedVariant) {
+      onLogMessage == null ? void 0 : onLogMessage(["info", 404, selectedVariant.id]);
+    }
+    return {
+      result: selectedVariant,
+      variantAssigned: !selectedVariantId
+    };
+  } finally {
+    onLogMessage == null ? void 0 : onLogMessage(["info", 400, "ENDGROUP"]);
+  }
+};
+
+// src/storage/CookieTransitionDataStore.ts
+
+
+// src/storage/TransitionDataStore.ts
+
+
+var SERVER_STATE_ID = "__UNIFORM_DATA__";
+var _data, _initialData, _mitt;
+var TransitionDataStore = class {
+  constructor({ initialData }) {
+    __privateAdd(this, _data, void 0);
+    __privateAdd(this, _initialData, void 0);
+    __privateAdd(this, _mitt, (0,mitt__WEBPACK_IMPORTED_MODULE_2__["default"])());
+    __publicField(this, "events", {
+      on: __privateGet(this, _mitt).on,
+      off: __privateGet(this, _mitt).off
+    });
+    if (initialData) {
+      __privateSet(this, _data, initialData);
+      __privateSet(this, _initialData, initialData);
+    }
+  }
+  get data() {
+    return __privateGet(this, _data);
+  }
+  get initialData() {
+    return __privateGet(this, _initialData);
+  }
+  updateData(commands, computedValue) {
+    __privateSet(this, _data, computedValue);
+    return this.handleUpdateData(commands, computedValue);
+  }
+  async delete(fromAllDevices) {
+    __privateSet(this, _data, void 0);
+    await this.handleDelete(fromAllDevices);
+  }
+  signalAsyncDataUpdate(newScores) {
+    if ((0,dequal_lite__WEBPACK_IMPORTED_MODULE_0__.dequal)(this.data, newScores)) {
+      return;
+    }
+    __privateSet(this, _data, newScores);
+    __privateGet(this, _mitt).emit("dataUpdatedAsync", newScores);
+  }
+  getClientTransitionState() {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const matchesElement = document.getElementById(SERVER_STATE_ID);
+    return (matchesElement == null ? void 0 : matchesElement.textContent) ? JSON.parse(matchesElement.textContent) : void 0;
+  }
+};
+_data = new WeakMap();
+_initialData = new WeakMap();
+_mitt = new WeakMap();
+
+// src/storage/util/numberToBase64.ts
+var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+var b2s = alphabet.split("");
+var s2b = new Array(123);
+for (let i = 0; i < alphabet.length; i++) {
+  s2b[alphabet.charCodeAt(i)] = i;
+}
+var ntob = (number) => {
+  if (number < 0)
+    return `-${ntob(-number)}`;
+  let lo = number >>> 0;
+  let hi = number / 4294967296 >>> 0;
+  let right = "";
+  while (hi > 0) {
+    right = b2s[63 & lo] + right;
+    lo >>>= 6;
+    lo |= (63 & hi) << 26;
+    hi >>>= 6;
+  }
+  let left = "";
+  do {
+    left = b2s[63 & lo] + left;
+    lo >>>= 6;
+  } while (lo > 0);
+  return left + right;
+};
+var bton = (base64) => {
+  let number = 0;
+  const sign = base64.charAt(0) === "-" ? 1 : 0;
+  for (let i = sign; i < base64.length; i++) {
+    number = number * 64 + s2b[base64.charCodeAt(i)];
+  }
+  return sign ? -number : number;
+};
+
+// src/storage/CookieTransitionDataStore.ts
+var ssr = typeof document === "undefined";
+var UNIFORM_DEFAULT_COOKIE_NAME = "ufvd";
+var _cookieName, _cookieAttributes;
+var CookieTransitionDataStore = class extends TransitionDataStore {
+  constructor({
+    serverCookieValue,
+    cookieName = UNIFORM_DEFAULT_COOKIE_NAME,
+    cookieAttributes = { sameSite: "lax" }
+  }) {
+    super({
+      initialData: ssr ? parseScoreCookie(serverCookieValue) : void 0
+    });
+    __privateAdd(this, _cookieName, void 0);
+    __privateAdd(this, _cookieAttributes, void 0);
+    __privateSet(this, _cookieName, cookieName);
+    __privateSet(this, _cookieAttributes, cookieAttributes);
+  }
+  handleDelete() {
+    if (ssr)
+      return Promise.resolve();
+    js_cookie__WEBPACK_IMPORTED_MODULE_1__["default"].remove(__privateGet(this, _cookieName));
+    return Promise.resolve();
+  }
+  async handleUpdateData(_, computedValue) {
+    if (ssr)
+      return;
+    if (computedValue.consent) {
+      js_cookie__WEBPACK_IMPORTED_MODULE_1__["default"].set(__privateGet(this, _cookieName), serializeCookie(computedValue), __privateGet(this, _cookieAttributes));
+    } else {
+      js_cookie__WEBPACK_IMPORTED_MODULE_1__["default"].remove(__privateGet(this, _cookieName));
+    }
+  }
+};
+_cookieName = new WeakMap();
+_cookieAttributes = new WeakMap();
+var TYPE_SEP = "~";
+var PAIR_SEP = "!";
+var KV_SEP = "-";
+function parseScoreCookie(cookieValue) {
+  if (!cookieValue)
+    return;
+  const types = cookieValue.split(TYPE_SEP);
+  if (types.length > 3)
+    return;
+  const [abTestData, sessionScores, visitorScores] = types;
+  return {
+    consent: true,
+    sessionScores: decodeCookieType(parseCookieType(sessionScores)),
+    scores: decodeCookieType(parseCookieType(visitorScores)),
+    tests: parseCookieType(abTestData)
+  };
+}
+function parseCookieType(type) {
+  const pairs = type.split(PAIR_SEP).map((pair) => pair.split(KV_SEP));
+  return pairs.reduce((acc, cur) => {
+    if (cur.length < 2)
+      return acc;
+    acc[cur[0]] = cur.slice(1).join("-");
+    return acc;
+  }, {});
+}
+function decodeCookieType(type) {
+  return Object.entries(type).reduce((acc, [key, value]) => {
+    acc[key] = bton(value);
+    return acc;
+  }, {});
+}
+function serializeCookie(data) {
+  return [
+    serializeCookieType(data.tests),
+    serializeCookieType(encodeCookieType(data.sessionScores)),
+    serializeCookieType(encodeCookieType(data.scores))
+  ].join(TYPE_SEP);
+}
+function encodeCookieType(type) {
+  return Object.entries(type).reduce((acc, [key, value]) => {
+    acc[key] = ntob(value);
+    return acc;
+  }, {});
+}
+function serializeCookieType(type) {
+  return Object.entries(type).map((kv) => kv.join(KV_SEP)).join(PAIR_SEP);
+}
+
+// src/storage/EdgeTransitionDataStore.ts
+var _fetchData, fetchData_fn;
+var EdgeTransitionDataStore = class extends TransitionDataStore {
+  constructor({ serverCookieValue, visitorIdCookieName = "ufvi", ...base }) {
+    super(base);
+    __privateAdd(this, _fetchData);
+    if (!base.initialData) {
+      __privateMethod(this, _fetchData, fetchData_fn).call(this).catch((err) => {
+        console.error(err);
+      });
+    }
+  }
+  handleDelete(fromAllDevices) {
+    throw new Error("Method not implemented.");
+  }
+  async handleUpdateData(commands) {
+    const commandResults = await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(void 0);
+      }, 2e3);
+    });
+    if (commandResults) {
+      this.signalAsyncDataUpdate(commandResults);
+    }
+  }
+};
+_fetchData = new WeakSet();
+fetchData_fn = async function() {
+  const serviceData = await new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(void 0);
+    }, 2e3);
+  });
+  if (serviceData) {
+    this.signalAsyncDataUpdate(serviceData);
+  }
+};
+
+// src/storage/linearDecay.ts
+function createLinearDecay(options) {
+  const { gracePeriod = 864e5, decayRate = 1 / 30, decayCap = 0.95 } = options != null ? options : {};
+  return function linearDecay({ now, lastUpd, scores, sessionScores, onLogMessage }) {
+    if (typeof lastUpd !== "number") {
+      return false;
+    }
+    const timeSinceLastUpdate = now - lastUpd;
+    const timeSinceGracePeriod = timeSinceLastUpdate - gracePeriod;
+    if (timeSinceGracePeriod <= 0) {
+      return false;
+    }
+    const timeSinceGracePeriodInDays = timeSinceGracePeriod / 864e5;
+    const decayFactor = 1 - Math.min(decayCap, timeSinceGracePeriodInDays * decayRate);
+    if (decayFactor <= 0) {
+      return false;
+    }
+    decayVector(scores, decayFactor);
+    decayVector(sessionScores, decayFactor);
+    onLogMessage == null ? void 0 : onLogMessage(["info", 140, `linear decay factor ${decayFactor.toPrecision(6)}`]);
+    return true;
+  };
+}
+function decayVector(vector, decay) {
+  for (const key in vector) {
+    if (key.startsWith("$")) {
+      continue;
+    }
+    vector[key] *= decay;
+  }
+}
+
+// src/types.ts
+var emptyVisitorData = () => ({
+  quirks: {},
+  scores: {},
+  sessionScores: {},
+  tests: {},
+  consent: false,
+  controlGroup: false
+});
+
+// src/storage/VisitorDataStore.ts
+
+
+
+// src/storage/util/applyCommandsToData.ts
+
+var clone = rfdc__WEBPACK_IMPORTED_MODULE_3__();
+function applyCommandsToData(commands, state, inControlGroup) {
+  const newData = state ? clone(state) : emptyVisitorData();
+  commands.forEach((command) => {
+    var _a, _b;
+    switch (command.type) {
+      case "consent":
+        newData.consent = command.data;
+        break;
+      case "setquirk":
+        newData.quirks[command.data.key] = command.data.value;
+        break;
+      case "settest":
+        newData.tests[command.data.test] = command.data.variant;
+        break;
+      case "modscore":
+        if (inControlGroup)
+          break;
+        const delta = Number(command.data.delta);
+        if (isNaN(delta)) {
+          throw new Error("Non-number delta received");
+        }
+        const existing = (_a = newData.scores[command.data.dimension]) != null ? _a : 0;
+        newData.scores[command.data.dimension] = existing + delta;
+        break;
+      case "modscoreS":
+        if (inControlGroup)
+          break;
+        const deltaS = Number(command.data.delta);
+        if (isNaN(deltaS)) {
+          throw new Error("Non-number delta received");
+        }
+        const existingS = (_b = newData.sessionScores[command.data.dimension]) != null ? _b : 0;
+        newData.sessionScores[command.data.dimension] = existingS + deltaS;
+        break;
+      case "identify":
+        break;
+      case "setcontrol":
+        newData.controlGroup = command.data;
+        break;
+      default:
+        throw new Error(`Unknown command`);
+    }
+  });
+  return newData;
+}
+
+// src/storage/util/LocalStorage.ts
+var LocalStorage = class {
+  constructor() {
+    __publicField(this, "inMemoryFallback", {});
+    __publicField(this, "hasLocalStorageObject", typeof localStorage !== "undefined");
+  }
+  get(key) {
+    const fallbackValue = this.inMemoryFallback[key];
+    if (!this.hasLocalStorageObject || fallbackValue) {
+      return fallbackValue;
+    }
+    try {
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : void 0;
+    } catch (e) {
+      return fallbackValue;
+    }
+  }
+  set(key, value, storageConsent) {
+    this.inMemoryFallback[key] = value;
+    if (!this.hasLocalStorageObject || !storageConsent) {
+      return;
+    }
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+  delete(key, leaveInMemory) {
+    if (!leaveInMemory) {
+      delete this.inMemoryFallback[key];
+    }
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+    }
+  }
+};
+
+// src/storage/VisitorDataStore.ts
+var STORAGE_KEY = "ufvisitor";
+var _mitt2, _persist, _visitTimeout, _options, _currentData, currentData_get, _replaceData, replaceData_fn, _setVisitTimeout, setVisitTimeout_fn, _isExpired, isExpired_fn, _handleCaps, handleCaps_fn, _defaultData, defaultData_fn;
+var VisitorDataStore = class {
+  constructor(options) {
+    __privateAdd(this, _currentData);
+    __privateAdd(this, _replaceData);
+    __privateAdd(this, _setVisitTimeout);
+    __privateAdd(this, _isExpired);
+    __privateAdd(this, _handleCaps);
+    __privateAdd(this, _defaultData);
+    __privateAdd(this, _mitt2, (0,mitt__WEBPACK_IMPORTED_MODULE_2__["default"])());
+    __privateAdd(this, _persist, new LocalStorage());
+    __privateAdd(this, _visitTimeout, void 0);
+    __privateAdd(this, _options, void 0);
+    __publicField(this, "events", {
+      on: __privateGet(this, _mitt2).on,
+      off: __privateGet(this, _mitt2).off
+    });
+    __privateSet(this, _options, options);
+    if (!__privateGet(this, _currentData, currentData_get)) {
+      __privateMethod(this, _replaceData, replaceData_fn).call(this, __privateMethod(this, _defaultData, defaultData_fn).call(this), true);
+    }
+    if (options.transitionStore) {
+      const serverToClientTransitionState = options.transitionStore.getClientTransitionState();
+      if (serverToClientTransitionState && options.onServerTransitionReceived) {
+        options.onServerTransitionReceived(serverToClientTransitionState);
+      }
+      options.transitionStore.events.on("dataUpdatedAsync", (data) => {
+        __privateMethod(this, _replaceData, replaceData_fn).call(this, {
+          ...__privateGet(this, _currentData, currentData_get).visitorData,
+          ...data
+        });
+      });
+      const transitionData = options.transitionStore.data;
+      if (transitionData) {
+        __privateMethod(this, _replaceData, replaceData_fn).call(this, { ...__privateGet(this, _currentData, currentData_get).visitorData, ...transitionData }, true);
+      }
+    }
+  }
+  get data() {
+    var _a, _b;
+    const data = __privateGet(this, _currentData, currentData_get);
+    if (__privateMethod(this, _isExpired, isExpired_fn).call(this, data)) {
+      const { sessionScores, ...newData } = data.visitorData;
+      __privateMethod(this, _replaceData, replaceData_fn).call(this, { ...newData, sessionScores: {} });
+      (_b = (_a = __privateGet(this, _options)).onLogMessage) == null ? void 0 : _b.call(_a, ["info", 120]);
+      return __privateGet(this, _currentData, currentData_get).visitorData;
+    }
+    return data.visitorData;
+  }
+  get decayEnabled() {
+    return !!__privateGet(this, _options).decay;
+  }
+  get options() {
+    return __privateGet(this, _options);
+  }
+  async updateData(commands) {
+    var _a, _b, _c, _d;
+    if (commands.length === 0) {
+      return;
+    }
+    (_b = (_a = __privateGet(this, _options)).onLogMessage) == null ? void 0 : _b.call(_a, ["debug", 101, commands]);
+    const newData = applyCommandsToData(commands, this.data, (_c = __privateGet(this, _currentData, currentData_get)) == null ? void 0 : _c.visitorData.controlGroup);
+    if (commands.some((c) => c.type === "consent" && !c.data)) {
+      __privateGet(this, _persist).delete(STORAGE_KEY, true);
+    }
+    __privateMethod(this, _replaceData, replaceData_fn).call(this, newData);
+    await ((_d = __privateGet(this, _options).transitionStore) == null ? void 0 : _d.updateData(commands, __privateGet(this, _currentData, currentData_get).visitorData));
+  }
+  async delete(fromAllDevices) {
+    var _a, _b, _c, _d, _e;
+    (_b = (_a = __privateGet(this, _options)).onLogMessage) == null ? void 0 : _b.call(_a, ["info", 103, "GROUP", fromAllDevices]);
+    try {
+      __privateGet(this, _persist).delete(STORAGE_KEY, false);
+      await ((_c = __privateGet(this, _options).transitionStore) == null ? void 0 : _c.delete(fromAllDevices));
+      __privateMethod(this, _replaceData, replaceData_fn).call(this, __privateMethod(this, _defaultData, defaultData_fn).call(this));
+    } finally {
+      (_e = (_d = __privateGet(this, _options)).onLogMessage) == null ? void 0 : _e.call(_d, ["info", 103, "ENDGROUP"]);
+    }
+  }
+};
+_mitt2 = new WeakMap();
+_persist = new WeakMap();
+_visitTimeout = new WeakMap();
+_options = new WeakMap();
+_currentData = new WeakSet();
+currentData_get = function() {
+  return __privateGet(this, _persist).get(STORAGE_KEY);
+};
+_replaceData = new WeakSet();
+replaceData_fn = function(data, quiet = false) {
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+  const oldData = __privateGet(this, _currentData, currentData_get);
+  const now = Date.now();
+  if (data.controlGroup) {
+    data.scores = {};
+    data.sessionScores = {};
+  } else {
+    __privateMethod(this, _handleCaps, handleCaps_fn).call(this, data.scores);
+    __privateMethod(this, _handleCaps, handleCaps_fn).call(this, data.sessionScores);
+    (_b = (_a = __privateGet(this, _options)).decay) == null ? void 0 : _b.call(_a, {
+      now,
+      lastUpd: oldData == null ? void 0 : oldData.updated,
+      scores: data.scores,
+      sessionScores: data.sessionScores,
+      onLogMessage: __privateGet(this, _options).onLogMessage
+    });
+  }
+  const haveScoresChanged = !(0,dequal_lite__WEBPACK_IMPORTED_MODULE_0__.dequal)(oldData == null ? void 0 : oldData.visitorData.scores, data.scores);
+  const haveSessionScoresChanged = !(0,dequal_lite__WEBPACK_IMPORTED_MODULE_0__.dequal)(oldData == null ? void 0 : oldData.visitorData.sessionScores, data.sessionScores);
+  const haveQuirksChanged = !(0,dequal_lite__WEBPACK_IMPORTED_MODULE_0__.dequal)(oldData == null ? void 0 : oldData.visitorData.quirks, data.quirks);
+  const haveTestsChanged = !(0,dequal_lite__WEBPACK_IMPORTED_MODULE_0__.dequal)(oldData == null ? void 0 : oldData.visitorData.tests, data.tests);
+  const updatedData = {
+    updated: now,
+    visitorData: data
+  };
+  __privateMethod(this, _setVisitTimeout, setVisitTimeout_fn).call(this);
+  __privateGet(this, _persist).set(STORAGE_KEY, updatedData, !!data.consent);
+  (_d = (_c = __privateGet(this, _options)).onLogMessage) == null ? void 0 : _d.call(_c, ["debug", 102, data]);
+  if (!quiet) {
+    if (haveScoresChanged || haveSessionScoresChanged) {
+      __privateGet(this, _mitt2).emit("scoresUpdated", data);
+    }
+    if (haveQuirksChanged) {
+      __privateGet(this, _mitt2).emit("quirksUpdated", data);
+    }
+    if (haveTestsChanged) {
+      __privateGet(this, _mitt2).emit("testsUpdated", data);
+    }
+    if (((_e = oldData == null ? void 0 : oldData.visitorData) == null ? void 0 : _e.consent) !== data.consent) {
+      __privateGet(this, _mitt2).emit("consentUpdated", data);
+    }
+    if (((_f = oldData == null ? void 0 : oldData.visitorData) == null ? void 0 : _f.controlGroup) !== data.controlGroup) {
+      __privateGet(this, _mitt2).emit("controlGroupUpdated", data);
+      (_i = (_h = __privateGet(this, _options)).onLogMessage) == null ? void 0 : _i.call(_h, ["debug", 104, (_g = data.controlGroup) != null ? _g : false]);
+    }
+  }
+};
+_setVisitTimeout = new WeakSet();
+setVisitTimeout_fn = function() {
+  if (typeof document === "undefined" || !__privateGet(this, _options).visitLifespan) {
+    return;
+  }
+  if (__privateGet(this, _visitTimeout)) {
+    window.clearTimeout(__privateGet(this, _visitTimeout));
+  }
+  __privateSet(this, _visitTimeout, window.setTimeout(() => {
+    this.data;
+  }, __privateGet(this, _options).visitLifespan + 50));
+};
+_isExpired = new WeakSet();
+isExpired_fn = function(data) {
+  const expires = __privateGet(this, _options).visitLifespan;
+  return expires ? data.updated + expires < Date.now() : false;
+};
+_handleCaps = new WeakSet();
+handleCaps_fn = function(scores) {
+  var _a, _b;
+  if (!__privateGet(this, _options).manifest) {
+    return;
+  }
+  for (const dim in scores) {
+    const score = scores[dim];
+    const dimDef = __privateGet(this, _options).manifest.getDimensionByKey(dim);
+    if (!dimDef) {
+      continue;
+    }
+    if (score > dimDef.cap) {
+      (_b = (_a = __privateGet(this, _options)).onLogMessage) == null ? void 0 : _b.call(_a, ["debug", 110, { dim, score, cap: dimDef.cap }]);
+      scores[dim] = dimDef.cap;
+    }
+  }
+};
+_defaultData = new WeakSet();
+defaultData_fn = function() {
+  var _a, _b, _c;
+  return {
+    ...emptyVisitorData(),
+    consent: (_a = __privateGet(this, _options).defaultConsent) != null ? _a : false,
+    controlGroup: (_c = (_b = __privateGet(this, _options).manifest) == null ? void 0 : _b.rollForControlGroup()) != null ? _c : false
+  };
+};
+
+// src/Context.ts
+
+
+var _serverTransitionState, _scores, _state, _pzCache, _mitt3, _emitTest, emitTest_fn, _updateComputedScores, updateComputedScores_fn, _calculateScores, calculateScores_fn;
+var Context = class {
+  constructor(options) {
+    __privateAdd(this, _emitTest);
+    __privateAdd(this, _updateComputedScores);
+    __privateAdd(this, _calculateScores);
+    __publicField(this, "manifest");
+    __privateAdd(this, _serverTransitionState, void 0);
+    __privateAdd(this, _scores, {});
+    __privateAdd(this, _state, void 0);
+    __privateAdd(this, _pzCache, {});
+    __privateAdd(this, _mitt3, (0,mitt__WEBPACK_IMPORTED_MODULE_2__["default"])());
+    __publicField(this, "events", {
+      on: __privateGet(this, _mitt3).on,
+      off: __privateGet(this, _mitt3).off
+    });
+    __publicField(this, "storage");
+    var _a, _b;
+    const { manifest, ...storageOptions } = options;
+    __privateSet(this, _state, {});
+    (_a = options.plugins) == null ? void 0 : _a.forEach((plugin) => {
+      if (!plugin.logDrain) {
+        return;
+      }
+      __privateGet(this, _mitt3).on("log", plugin.logDrain);
+    });
+    __privateGet(this, _mitt3).emit("log", ["info", 1, "GROUP"]);
+    try {
+      this.manifest = new ManifestInstance({
+        onLogMessage: (message) => __privateGet(this, _mitt3).emit("log", message),
+        manifest,
+        evaluator: new GroupCriteriaEvaluator({
+          CK: cookieEvaluator,
+          QS: queryStringEvaluator,
+          QK: quirkEvaluator,
+          PVC: pageViewCountEvaluator,
+          EVT: eventEvaluator,
+          PV: currentPageEvaluator
+        })
+      });
+      this.storage = new VisitorDataStore({
+        ...storageOptions,
+        manifest: this.manifest,
+        onServerTransitionReceived: (state) => {
+          __privateSet(this, _serverTransitionState, state);
+          if (state.ssv) {
+            __privateSet(this, _scores, state.ssv);
+            __privateGet(this, _mitt3).emit("log", ["debug", 130, state]);
+          }
+        },
+        onLogMessage: (message) => __privateGet(this, _mitt3).emit("log", message)
+      });
+      this.storage.events.on("scoresUpdated", __privateMethod(this, _updateComputedScores, updateComputedScores_fn).bind(this));
+      if (!__privateGet(this, _serverTransitionState)) {
+        __privateMethod(this, _updateComputedScores, updateComputedScores_fn).call(this, this.storage.data);
+      }
+      this.storage.events.on("quirksUpdated", (quirks) => {
+        const updates = this.manifest.computeSignals({
+          scores: __privateGet(this, _scores),
+          state: __privateGet(this, _state),
+          previousState: __privateGet(this, _state),
+          visitor: this.storage.data
+        });
+        this.storage.updateData(updates);
+        __privateGet(this, _mitt3).emit("quirksUpdated", quirks.quirks);
+        __privateGet(this, _mitt3).emit("log", ["info", 4, quirks.quirks]);
+      });
+      (_b = options.plugins) == null ? void 0 : _b.forEach((plugin) => {
+        if (!plugin.init) {
+          return;
+        }
+        plugin.init(this);
+      });
+    } finally {
+      __privateGet(this, _mitt3).emit("log", ["info", 1, "ENDGROUP"]);
+    }
+  }
+  get scores() {
+    return __privateGet(this, _scores);
+  }
+  get quirks() {
+    var _a, _b;
+    return (_b = (_a = __privateGet(this, _serverTransitionState)) == null ? void 0 : _a.quirks) != null ? _b : this.storage.data.quirks;
+  }
+  async update(newData) {
+    var _a, _b, _c;
+    const commands = [];
+    const newServerSideTests = {};
+    if ((_a = __privateGet(this, _serverTransitionState)) == null ? void 0 : _a.quirks) {
+      newData = {
+        ...newData,
+        quirks: {
+          ...__privateGet(this, _serverTransitionState).quirks,
+          ...newData.quirks || {}
+        }
+      };
+    }
+    if ((_b = __privateGet(this, _serverTransitionState)) == null ? void 0 : _b.tests) {
+      const testEntries = Object.entries(__privateGet(this, _serverTransitionState).tests);
+      if (testEntries.length > 0) {
+        const validTests = [];
+        testEntries.forEach(([testName, testVariantId]) => {
+          if (!this.storage.data.tests[testName]) {
+            validTests.push([testName, testVariantId]);
+            newServerSideTests[testName] = testVariantId;
+          }
+        });
+        commands.push(
+          ...validTests.map(([key, value]) => ({
+            type: "settest",
+            data: { test: key, variant: value }
+          }))
+        );
+      }
+    }
+    try {
+      __privateGet(this, _mitt3).emit("log", [
+        "info",
+        2,
+        "GROUP",
+        {
+          ...newData,
+          url: (_c = newData.url) == null ? void 0 : _c.toString()
+        }
+      ]);
+      if (newData.quirks) {
+        commands.push(
+          ...Object.entries(newData.quirks).map(([key, value]) => ({
+            type: "setquirk",
+            data: { key, value }
+          }))
+        );
+      }
+      if (newData.enrichments) {
+        newData.enrichments.forEach((enrichment) => {
+          const dimension = getEnrichmentVectorKey(enrichment.cat, enrichment.key);
+          const dimData = this.manifest.getDimensionByKey(dimension);
+          if (dimData) {
+            commands.push({
+              type: "modscore",
+              data: {
+                dimension,
+                delta: enrichment.str
+              }
+            });
+          } else {
+            __privateGet(this, _mitt3).emit("log", ["warn", 5, enrichment]);
+          }
+        });
+      }
+      commands.push(
+        ...this.manifest.computeSignals({
+          state: newData,
+          previousState: __privateGet(this, _state),
+          visitor: this.storage.data,
+          scores: __privateGet(this, _serverTransitionState) ? __privateMethod(this, _calculateScores, calculateScores_fn).call(this, this.storage.data) : __privateGet(this, _scores)
+        })
+      );
+      __privateSet(this, _state, {
+        ...__privateGet(this, _state),
+        ...newData
+      });
+      await this.storage.updateData(commands);
+      if (__privateGet(this, _serverTransitionState)) {
+        __privateMethod(this, _updateComputedScores, updateComputedScores_fn).call(this, this.storage.data);
+        Object.entries(newServerSideTests).forEach(([testName, testVariantId]) => {
+          __privateMethod(this, _emitTest, emitTest_fn).call(this, {
+            name: testName,
+            variantId: testVariantId,
+            variantAssigned: true
+          });
+        });
+        __privateSet(this, _serverTransitionState, void 0);
+        __privateGet(this, _mitt3).emit("log", ["debug", 131]);
+      }
+    } finally {
+      __privateGet(this, _mitt3).emit("log", ["info", 2, "ENDGROUP"]);
+    }
+  }
+  getTestVariantId(testName) {
+    var _a, _b, _c, _d;
+    const definition = this.manifest.getTest(testName);
+    if (!definition) {
+      __privateGet(this, _mitt3).emit("log", ["warn", 401, testName]);
+      return null;
+    }
+    return (_d = (_c = definition.wv) != null ? _c : (_b = (_a = __privateGet(this, _serverTransitionState)) == null ? void 0 : _a.tests) == null ? void 0 : _b[testName]) != null ? _d : this.storage.data.tests[testName];
+  }
+  setTestVariantId(testName, variantId) {
+    this.storage.updateData([
+      {
+        type: "settest",
+        data: {
+          test: testName,
+          variant: variantId
+        }
+      }
+    ]);
+  }
+  log(...message) {
+    __privateGet(this, _mitt3).emit("log", message);
+  }
+  test(options) {
+    var _a, _b;
+    const value = testVariations({
+      ...options,
+      context: this,
+      onLogMessage: (message) => __privateGet(this, _mitt3).emit("log", message)
+    });
+    __privateMethod(this, _emitTest, emitTest_fn).call(this, {
+      name: options.name,
+      variantId: (_b = (_a = value.result) == null ? void 0 : _a.id) != null ? _b : void 0,
+      variantAssigned: value.variantAssigned
+    });
+    return value;
+  }
+  personalize(options) {
+    const value = personalizeVariations({
+      ...options,
+      context: this,
+      onLogMessage: (message) => __privateGet(this, _mitt3).emit("log", message)
+    });
+    const previousPlacement = __privateGet(this, _pzCache)[options.name];
+    const eventData = {
+      name: options.name,
+      variantIds: value.variations.map((variation) => {
+        var _a;
+        return (_a = variation.id) != null ? _a : "Unknown";
+      }),
+      control: this.storage.data.controlGroup,
+      changed: true
+    };
+    if (previousPlacement && (0,dequal_lite__WEBPACK_IMPORTED_MODULE_0__.dequal)(eventData.variantIds, previousPlacement)) {
+      eventData.changed = false;
+    }
+    __privateGet(this, _mitt3).emit("personalizationResult", eventData);
+    __privateGet(this, _pzCache)[options.name] = eventData.variantIds;
+    return value;
+  }
+  async forget(fromAllDevices) {
+    __privateSet(this, _state, {});
+    await this.storage.delete(fromAllDevices);
+  }
+  getServerToClientTransitionState() {
+    const transitionState = {
+      quirks: this.storage.data.quirks,
+      ssv: __privateGet(this, _scores),
+      tests: {}
+    };
+    const allTests = this.storage.data.tests;
+    Object.entries(allTests).map(([testName, testValue]) => {
+      var _a, _b, _c;
+      if (((_c = (_b = (_a = this.storage.options.transitionStore) == null ? void 0 : _a.initialData) == null ? void 0 : _b.tests) == null ? void 0 : _c[testName]) !== allTests[testName] && transitionState.tests) {
+        transitionState.tests[testName] = testValue;
+      }
+    });
+    return transitionState;
+  }
+};
+_serverTransitionState = new WeakMap();
+_scores = new WeakMap();
+_state = new WeakMap();
+_pzCache = new WeakMap();
+_mitt3 = new WeakMap();
+_emitTest = new WeakSet();
+emitTest_fn = function(event) {
+  __privateGet(this, _mitt3).emit("testResult", event);
+};
+_updateComputedScores = new WeakSet();
+updateComputedScores_fn = function(newData) {
+  const newScores = __privateMethod(this, _calculateScores, calculateScores_fn).call(this, newData);
+  const newScoresHaveChanged = !(0,dequal_lite__WEBPACK_IMPORTED_MODULE_0__.dequal)(newScores, __privateGet(this, _scores));
+  if (newScoresHaveChanged) {
+    __privateSet(this, _scores, newScores);
+    __privateGet(this, _mitt3).emit("scoresUpdated", newScores);
+    __privateGet(this, _mitt3).emit("log", ["info", 3, newScores]);
+  }
+};
+_calculateScores = new WeakSet();
+calculateScores_fn = function(newData) {
+  var _a;
+  let newScores = { ...newData.scores };
+  for (const session in newData.sessionScores) {
+    newScores[session] = ((_a = newScores[session]) != null ? _a : 0) + newData.sessionScores[session];
+  }
+  newScores = this.manifest.computeAggregateDimensions(newScores);
+  return newScores;
+};
+
+// src/devTools/enableContextDevTools.ts
+var isBrowser = typeof top !== "undefined";
+function enableContextDevTools() {
+  return {
+    logDrain: (message) => {
+      if (!isBrowser) {
+        return;
+      }
+      top == null ? void 0 : top.postMessage(
+        {
+          type: "uniform:context:log",
+          message
+        },
+        window.location.origin
+      );
+    },
+    init: (context) => {
+      const personalizations = [];
+      const tests = [];
+      const onContextDataUpdated = () => {
+        if (!isBrowser) {
+          return;
+        }
+        top == null ? void 0 : top.postMessage(
+          {
+            type: "uniform:context:data",
+            data: {
+              scores: context.scores,
+              data: context.storage.data,
+              manifest: context.manifest.data,
+              personalizations,
+              tests
+            }
+          },
+          window.location.origin
+        );
+      };
+      const onPersonalizationResult = (e) => {
+        if (!e.changed)
+          return;
+        personalizations.push(e);
+      };
+      const onTestResult = (e) => {
+        if (!e.variantAssigned)
+          return;
+        tests.push(e);
+      };
+      if (isBrowser) {
+        window.__UNIFORM_DEVTOOLS_CONTEXT_INSTANCE__ = context;
+        try {
+          top == null ? void 0 : top.addEventListener("message", async (event) => {
+            if (!event.data) {
+              return;
+            }
+            const message = event.data;
+            await handleMessageFromDevTools(message, context);
+          });
+        } catch (e) {
+          console.warn(
+            "Unable to initialize Uniform Context DevTools because it is in a cross-domain iframe.",
+            e
+          );
+        }
+        top == null ? void 0 : top.postMessage(
+          {
+            type: "uniform:context:hello",
+            uiVersion: 2
+          },
+          window.location.origin
+        );
+        onContextDataUpdated();
+      }
+      context.events.on("personalizationResult", onPersonalizationResult);
+      context.events.on("testResult", onTestResult);
+      context.events.on("scoresUpdated", onContextDataUpdated);
+      context.storage.events.on("*", onContextDataUpdated);
+      return () => {
+        context.events.off("scoresUpdated", onContextDataUpdated);
+        context.storage.events.off("*", onContextDataUpdated);
+        context.events.off("personalizationResult", onPersonalizationResult);
+        context.events.off("testResult", onTestResult);
+      };
+    }
+  };
+}
+async function handleMessageFromDevTools(message, context) {
+  if (message.type === "uniform-in:context:update" && message.newData) {
+    await context.update(message.newData);
+  }
+  if (message.type === "uniform-in:context:commands" && message.commands && Array.isArray(message.commands)) {
+    await context.storage.updateData(message.commands);
+  }
+  if (message.type === "uniform-in:context:forget") {
+    await context.forget(false);
+  }
+}
+
+// src/edge/index.ts
+var ScriptType = /* @__PURE__ */ ((ScriptType2) => {
+  ScriptType2["ListStart"] = "nesi-list-start";
+  ScriptType2["ListEnd"] = "nesi-list-end";
+  ScriptType2["ListItem"] = "nesi-list-item-html";
+  ScriptType2["ListItemSettings"] = "nesi-list-item-settings";
+  ScriptType2["TestStart"] = "nesi-test-start";
+  ScriptType2["TestEnd"] = "nesi-test-end";
+  ScriptType2["Unknown"] = "unknown";
+  return ScriptType2;
+})(ScriptType || {});
+var EdgeNodeTagName = "nesitag";
+
+// src/logging/enableConsoleLogDrain.ts
+
+
+// src/logging/isEnabled.ts
+function isEnabled(level, severity) {
+  if (level === "none") {
+    return false;
+  }
+  switch (severity) {
+    case "debug":
+      return level === "debug";
+    case "info":
+      return level === "info" || level === "debug";
+    case "warn":
+      return level === "warn" || level === "info" || level === "debug";
+    case "error":
+      return level === "debug" || "info";
+    default:
+      return false;
+  }
+}
+
+// src/logging/enableConsoleLogDrain.ts
+var dc = rfdc__WEBPACK_IMPORTED_MODULE_3__();
+function createConsoleLogDrain(level) {
+  return ([severity, ...other]) => {
+    if (!isEnabled(level, severity)) {
+      return;
+    }
+    const [id, ...params] = other;
+    console[severity](`\u{1F94B} [${severity}] Uniform event ID ${id}
+`, ...params.map(dc));
+  };
+}
+function enableConsoleLogDrain(level) {
+  const consoleLogDrain = createConsoleLogDrain(level);
+  return {
+    logDrain: consoleLogDrain
+  };
+}
+
+// src/logging/enableDebugConsoleLogDrain.ts
+
+
+// src/logging/messageContent.ts
+var messageContent = {
+  1: () => ["context", "initializing Uniform Context"],
+  2: (update) => ["context", "received update()", update],
+  3: (scores) => ["context", "new score vector", scores],
+  4: (quirks) => ["context", "updated quirks", quirks],
+  5: (enrichment) => ["context", "ignored enrichment update for unknown enrichment category", enrichment.cat],
+  101: (commands) => ["storage", "received update commands", commands],
+  102: (data) => ["storage", "data was updated", data],
+  103: (fromAllDevices) => [
+    "storage",
+    `deleting visitor data ${fromAllDevices ? "from all devices" : "from this device"}`
+  ],
+  104: (isControl) => [
+    "context",
+    isControl ? "Visitor assigned to personalization control group" : "Visitor assigned to personalization experiment group"
+  ],
+  110: ({ dim, cap, score }) => ["storage", `${dim} score ${score} exceeded cap ${cap}. Rounded down.`],
+  120: () => ["storage", "visitor data expired and was cleared"],
+  130: (data) => [
+    "storage",
+    "server to client transition score data was loaded; it will persist until the next update event occurs",
+    data
+  ],
+  131: () => ["storage", "server to client transition data was discarded"],
+  140: (decayMessage) => ["storage", `score decay was applied: ${decayMessage}`],
+  200: () => ["signals", "evaluating signals"],
+  201: (signal) => ["signals", `evaluating signal ${signal.id} (${signal.dur})`],
+  202: (group) => ["signals", group.op === "|" ? "OR" : "AND"],
+  203: ({ criteria, result, explanation }) => [
+    "signals",
+    `${criteria.type}: ${explanation} is ${result.result} [${result.changed ? "CHANGED" : "unchanged"}]`
+  ],
+  204: (result) => [
+    "signals",
+    `group result: ${result.result} [${result.changed ? "CHANGED" : "unchanged"}]`
+  ],
+  300: (placement) => ["personalization", `executing personalization '${placement.name}'`],
+  301: ({ id, op }) => ["personalization", `testing variation ${id} (${op === "|" ? "OR" : "AND"})`],
+  302: ({ matched, description }) => ["personalization", `${description} is ${matched}`],
+  303: (selected) => ["personalization", selected ? "selected variation" : "did not select variation"],
+  400: (name) => ["testing", `executing A/B test '${name}'`],
+  401: (testName) => ["testing", `${testName} is not registered in the manifest; it will not be run.`],
+  402: ({ missingVariant, variants }) => [
+    "testing",
+    `test variation '${missingVariant}' previously assigned to the visitor for this test no longer exists as a variant. It will be removed. This may indicate changing test variations after publishing a test, which will make results invalid. Known variants: ${variants.join(
+      ", "
+    )}`
+  ],
+  403: (variant) => ["testing", `assigned new test variant '${variant}'`],
+  404: (variant) => ["testing", `displaying variation '${variant}'`],
+  700: () => [
+    "gtag",
+    "gtag is not defined, skipping analytics event emission. Ensure you have added the gtag script to your page."
+  ],
+  701: () => ["gtag", "enabled gtag event signal redirection"]
+};
+
+// src/logging/enableDebugConsoleLogDrain.ts
+var dc2 = rfdc__WEBPACK_IMPORTED_MODULE_3__();
+function createDebugConsoleLogDrain(level, options) {
+  const isServer = typeof document === "undefined";
+  const { enableOnServer = false } = options != null ? options : {};
+  return ([severity, ...other]) => {
+    if (!isEnabled(level, severity) || isServer && !enableOnServer) {
+      return;
+    }
+    const [id, ...params] = other;
+    let consoleFunc = console[severity];
+    if (params[0] === "GROUP") {
+      params.shift();
+      consoleFunc = console.groupCollapsed;
+    }
+    if (params[0] === "ENDGROUP") {
+      console.groupEnd();
+      return;
+    }
+    const messageFunc = messageContent[id];
+    let icon = "";
+    switch (severity) {
+      case "debug":
+        icon = "\u{1F41E}";
+        break;
+      case "info":
+        icon = "\u{1F4AC}";
+        break;
+      case "warn":
+        icon = "\u26A0\uFE0F";
+        break;
+      case "error":
+        icon = "\u{1F4A5}";
+        break;
+    }
+    const messagePrefix = icon;
+    if (!messageFunc) {
+      consoleFunc(
+        `${messagePrefix} unknown event ID ${id}. Log messages data may be older than Uniform Context package.`,
+        ...params
+      );
+      return;
+    }
+    const [category, messageBody, ...outParams] = messageFunc(...params);
+    consoleFunc(`${messagePrefix}[${category}] ${messageBody}
+`, ...outParams.map(dc2));
+  };
+}
+function enableDebugConsoleLogDrain(level, options) {
+  const debugConsoleLogDrain = createDebugConsoleLogDrain(level, options);
+  return { logDrain: debugConsoleLogDrain };
+}
+
+// src/quickconnect/quickconnect.ts
+function serializeQuickConnect(config) {
+  return `${config.apiKey}|${config.projectId}${config.apiHost ? `|${config.apiHost}` : ""}`;
+}
+function parseQuickConnect(serialized) {
+  const [apiKey, projectId, apiHost] = serialized.split("|");
+  if (!apiKey.startsWith("uf")) {
+    throw new Error("Invalid API key");
+  }
+  if (!/^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(projectId)) {
+    throw new Error("Invalid project ID");
+  }
+  return {
+    apiKey,
+    projectId,
+    apiHost: apiHost || "https://uniform.app"
+  };
+}
+
+
+
+/***/ }),
+
+/***/ "./node_modules/@uniformdev/context/node_modules/mitt/dist/mitt.mjs":
+/*!**************************************************************************!*\
+  !*** ./node_modules/@uniformdev/context/node_modules/mitt/dist/mitt.mjs ***!
+  \**************************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* export default binding */ __WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony default export */ function __WEBPACK_DEFAULT_EXPORT__(n){return{all:n=n||new Map,on:function(t,e){var i=n.get(t);i?i.push(e):n.set(t,[e])},off:function(t,e){var i=n.get(t);i&&(e?i.splice(i.indexOf(e)>>>0,1):n.set(t,[]))},emit:function(t,e){var i=n.get(t);i&&i.slice().map(function(n){n(e)}),(i=n.get("*"))&&i.slice().map(function(n){n(t,e)})}}}
+//# sourceMappingURL=mitt.mjs.map
+
+
+/***/ }),
+
+/***/ "./node_modules/dequal/lite/index.mjs":
+/*!********************************************!*\
+  !*** ./node_modules/dequal/lite/index.mjs ***!
+  \********************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "dequal": () => (/* binding */ dequal)
+/* harmony export */ });
+var has = Object.prototype.hasOwnProperty;
+
+function dequal(foo, bar) {
+	var ctor, len;
+	if (foo === bar) return true;
+
+	if (foo && bar && (ctor=foo.constructor) === bar.constructor) {
+		if (ctor === Date) return foo.getTime() === bar.getTime();
+		if (ctor === RegExp) return foo.toString() === bar.toString();
+
+		if (ctor === Array) {
+			if ((len=foo.length) === bar.length) {
+				while (len-- && dequal(foo[len], bar[len]));
+			}
+			return len === -1;
+		}
+
+		if (!ctor || typeof foo === 'object') {
+			len = 0;
+			for (ctor in foo) {
+				if (has.call(foo, ctor) && ++len && !has.call(bar, ctor)) return false;
+				if (!(ctor in bar) || !dequal(foo[ctor], bar[ctor])) return false;
+			}
+			return Object.keys(bar).length === len;
+		}
+	}
+
+	return foo !== foo && bar !== bar;
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/js-cookie/dist/js.cookie.mjs":
+/*!***************************************************!*\
+  !*** ./node_modules/js-cookie/dist/js.cookie.mjs ***!
+  \***************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/*! js-cookie v3.0.1 | MIT */
+/* eslint-disable no-var */
+function assign (target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i];
+    for (var key in source) {
+      target[key] = source[key];
+    }
+  }
+  return target
+}
+/* eslint-enable no-var */
+
+/* eslint-disable no-var */
+var defaultConverter = {
+  read: function (value) {
+    if (value[0] === '"') {
+      value = value.slice(1, -1);
+    }
+    return value.replace(/(%[\dA-F]{2})+/gi, decodeURIComponent)
+  },
+  write: function (value) {
+    return encodeURIComponent(value).replace(
+      /%(2[346BF]|3[AC-F]|40|5[BDE]|60|7[BCD])/g,
+      decodeURIComponent
+    )
+  }
+};
+/* eslint-enable no-var */
+
+/* eslint-disable no-var */
+
+function init (converter, defaultAttributes) {
+  function set (key, value, attributes) {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    attributes = assign({}, defaultAttributes, attributes);
+
+    if (typeof attributes.expires === 'number') {
+      attributes.expires = new Date(Date.now() + attributes.expires * 864e5);
+    }
+    if (attributes.expires) {
+      attributes.expires = attributes.expires.toUTCString();
+    }
+
+    key = encodeURIComponent(key)
+      .replace(/%(2[346B]|5E|60|7C)/g, decodeURIComponent)
+      .replace(/[()]/g, escape);
+
+    var stringifiedAttributes = '';
+    for (var attributeName in attributes) {
+      if (!attributes[attributeName]) {
+        continue
+      }
+
+      stringifiedAttributes += '; ' + attributeName;
+
+      if (attributes[attributeName] === true) {
+        continue
+      }
+
+      // Considers RFC 6265 section 5.2:
+      // ...
+      // 3.  If the remaining unparsed-attributes contains a %x3B (";")
+      //     character:
+      // Consume the characters of the unparsed-attributes up to,
+      // not including, the first %x3B (";") character.
+      // ...
+      stringifiedAttributes += '=' + attributes[attributeName].split(';')[0];
+    }
+
+    return (document.cookie =
+      key + '=' + converter.write(value, key) + stringifiedAttributes)
+  }
+
+  function get (key) {
+    if (typeof document === 'undefined' || (arguments.length && !key)) {
+      return
+    }
+
+    // To prevent the for loop in the first place assign an empty array
+    // in case there are no cookies at all.
+    var cookies = document.cookie ? document.cookie.split('; ') : [];
+    var jar = {};
+    for (var i = 0; i < cookies.length; i++) {
+      var parts = cookies[i].split('=');
+      var value = parts.slice(1).join('=');
+
+      try {
+        var foundKey = decodeURIComponent(parts[0]);
+        jar[foundKey] = converter.read(value, foundKey);
+
+        if (key === foundKey) {
+          break
+        }
+      } catch (e) {}
+    }
+
+    return key ? jar[key] : jar
+  }
+
+  return Object.create(
+    {
+      set: set,
+      get: get,
+      remove: function (key, attributes) {
+        set(
+          key,
+          '',
+          assign({}, attributes, {
+            expires: -1
+          })
+        );
+      },
+      withAttributes: function (attributes) {
+        return init(this.converter, assign({}, this.attributes, attributes))
+      },
+      withConverter: function (converter) {
+        return init(assign({}, this.converter, converter), this.attributes)
+      }
+    },
+    {
+      attributes: { value: Object.freeze(defaultAttributes) },
+      converter: { value: Object.freeze(converter) }
+    }
+  )
+}
+
+var api = init(defaultConverter, { path: '/' });
+/* eslint-enable no-var */
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (api);
 
 
 /***/ }),
