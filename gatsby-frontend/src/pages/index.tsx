@@ -52,9 +52,12 @@ export async function getServerData({
 
 // Sanity enhancer function
 export async function enhanceComposition(composition: ComponentInstance) {
+    const sanity_pro_id: string = "of2hm1rq"
+    const sanity_data_Set: string = "production"
+
     const sanityClient = createSanityClient({
-        projectId: process.env.GATSBY_SANITY_PROJECT_ID,
-        dataset: process.env.GATSBY_SANITY_DATASET,
+        projectId: sanity_pro_id,
+        dataset: sanity_data_Set,
         useCdn: false,
     });
     // Create a modified enhancer to enhance the images and return offeringImage
@@ -83,7 +86,7 @@ const Homepage = (props: PageProps) => {
     console.log('I am in homepage compo');
 
     return (
-        <PageComponent props={serverData}>
+        <PageComponent>
 
         </PageComponent>
     );

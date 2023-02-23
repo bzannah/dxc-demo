@@ -12201,9 +12201,11 @@ async function getServerData({
 
 // Sanity enhancer function
 async function enhanceComposition(composition) {
+  const sanity_pro_id = "of2hm1rq";
+  const sanity_data_Set = "production";
   const sanityClient = (0,_sanity_client__WEBPACK_IMPORTED_MODULE_3__["default"])({
-    projectId: ({}).GATSBY_SANITY_PROJECT_ID,
-    dataset: ({}).GATSBY_SANITY_DATASET,
+    projectId: sanity_pro_id,
+    dataset: sanity_data_Set,
     useCdn: false
   });
   // Create a modified enhancer to enhance the images and return offeringImage
@@ -12228,9 +12230,7 @@ const Homepage = props => {
     serverData
   } = props;
   console.log('I am in homepage compo');
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_components_Page__WEBPACK_IMPORTED_MODULE_1__.PageComponent, {
-    props: serverData
-  });
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_components_Page__WEBPACK_IMPORTED_MODULE_1__.PageComponent, null);
 };
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Homepage);
 
