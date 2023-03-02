@@ -28,6 +28,7 @@ import {
 import {
     Composition,
     Slot,
+    useContextualEditing,
 } from "@uniformdev/canvas-react";
 
 // function to get composition
@@ -99,7 +100,7 @@ export function componentResolutionRenderer(
     switch (component.type) {
         case "hero":
             return Hero;
-        case "callToAction":
+        case "callToActionParametersAndType":
             return CTA;
         case "genericCard":
             return GenericCard;
@@ -116,8 +117,14 @@ export function componentResolutionRenderer(
 
 const Homepage = (props: PageProps) => {
     const {serverData} = props;
-    const {composition} = serverData as any;
-    console.log(serverData)
+    const {composition: initialCompositionValue} = serverData as any;
+    const {composition} = useContextualEditing({
+        initialCompositionValue,
+        enhance: async ({composition}) => {
+            await enhanceComposition(composition);
+            return composition;
+        },
+    });
     return (
         <PageComponent>
             <Composition

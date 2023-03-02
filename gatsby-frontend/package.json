@@ -10,10 +10,12 @@
   "scripts": {
     "develop": "gatsby develop",
     "start": "gatsby develop",
-    "build": "gatsby build",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev": "yarn uniform:download-manifest && gatsby develop",
+    "build": "yarn uniform:download-manifest && gatsby build",
+    "uniform:download-manifest": "uniform context manifest download --output ./uniform-manifest.json"
   },
   "dependencies": {
     "@uniformdev/canvas": "^18.12.0",

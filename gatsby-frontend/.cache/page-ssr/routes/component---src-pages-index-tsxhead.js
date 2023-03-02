@@ -12764,7 +12764,7 @@ function componentResolutionRenderer(component) {
   switch (component.type) {
     case "hero":
       return _components_Hero__WEBPACK_IMPORTED_MODULE_2__.Hero;
-    case "callToAction":
+    case "callToActionParametersAndType":
       return _components_CTA__WEBPACK_IMPORTED_MODULE_3__.CTA;
     case "genericCard":
       return _components_GenericCard__WEBPACK_IMPORTED_MODULE_5__.GenericCard;
@@ -12783,9 +12783,19 @@ const Homepage = props => {
     serverData
   } = props;
   const {
-    composition
+    composition: initialCompositionValue
   } = serverData;
-  console.log(serverData);
+  const {
+    composition
+  } = (0,_uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_12__.useContextualEditing)({
+    initialCompositionValue,
+    enhance: async ({
+      composition
+    }) => {
+      await enhanceComposition(composition);
+      return composition;
+    }
+  });
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_components_Page__WEBPACK_IMPORTED_MODULE_1__.PageComponent, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0__.createElement(_uniformdev_canvas_react__WEBPACK_IMPORTED_MODULE_12__.Composition, {
     data: composition,
     resolveRenderer: componentResolutionRenderer
